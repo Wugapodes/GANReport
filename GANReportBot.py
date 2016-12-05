@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[181]:
+# In[486]:
 
 import pywikibot
 import re
@@ -9,7 +9,7 @@ from datetime import date
 import datetime
 
 
-# In[195]:
+# In[487]:
 
 def monthConvert(name):
     if type(name) is str:
@@ -42,40 +42,72 @@ def monthConvert(name):
         else: raise ValueError
 
 
-# In[158]:
+# In[488]:
 
-def appendUpdates(toprint,updates):
+def appendUpdates(toprint,updates,index=2):
     for item in updates:
-        text = '# [['+item[0]+"]] ('''"+str(item[2])+"''' days)"
+        text = '# [['+item[0]+"]] ('''"+str(item[index])+"''' days)"
         toprint.append(text)
     return(toprint)
 
 
-# In[159]:
+# In[489]:
+
+def dateActions(entryList,index):
+    for item in entryList:
+        iMatch = datRegex.search(item[index])
+        day = int(iMatch.group(1))
+        month = int(monthConvert(iMatch.group(2)))
+        year = int(iMatch.group(3))
+        d0 = date(year, month, day)
+        delta = today-d0
+        item.append(delta.days)
+        #print(delta.days,'days')
+    return(entryList)
+
+
+# In[490]:
+
+def sortByKey(entryList,index):
+    entryList.sort(key=lambda x: x[index],reverse=True)
+    return(entryList)
+
+
+# In[491]:
+
+def wikiTimeStamp():
+    stamp = str(datetime.datetime.utcnow().hour)+        ':'+str(datetime.datetime.utcnow().minute)+        ', '+        str(datetime.datetime.utcnow().day)+        ' '+        monthConvert(datetime.datetime.utcnow().month)+        ' '+        str(datetime.datetime.utcnow().year)
+    return(stamp)
+
+
+# In[492]:
 
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 
 
-# In[160]:
+# In[493]:
 
+#Compile regexes
+##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\n(.*)\n')
+##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
 
 
-# In[161]:
+# In[494]:
 
 entry   = []
 onRev   = []
 onHld   = []
 waitg   = []
 scnOp   = []
-oThirty = []
 toPrint = []
 
 
-# In[162]:
+# In[495]:
 
+#Find the Nomination entries and then sort them into on hold, 2nd opinion, or on revivew
 for match in entRegex.findall(page.text):
     if 'GAReview' in match[2]:
         if 'on hold' in match[2]:
@@ -88,62 +120,104 @@ for match in entRegex.findall(page.text):
         entry.append([match[0],match[1]])
 
 
-# In[163]:
+# In[496]:
 
+#Get the date
 today = date.today()
 
 
-# In[164]:
+# In[497]:
 
-for item in entry:
-    iMatch = datRegex.search(item[1])
-    day = int(iMatch.group(1))
-    month = int(monthConvert(iMatch.group(2)))
-    year = int(iMatch.group(3))
-    d0 = date(year, month, day)
-    delta = today-d0
-    item.append(delta.days)
-    print(delta.days,'days')
-
-
-# In[165]:
-
+#Get nominations older than 30 days
+entry = dateActions(entry,1)
+oThirty=[]
 for item in entry:
     if int(item[2]) >= 30:
         oThirty.append(item)
+oThirty=sortByKey(oThirty,2)
 
 
-# In[166]:
+# In[498]:
 
-oThirty.sort(key=lambda x: x[2],reverse=True)
+#Get the nominations ON HOLD 7 days or longer
+onHld=dateActions(onHld,2)
+oldOnHold=[]
+for item in onHld:
+    if int(item[3]) >= 7:
+        oldOnHold.append(item)
+oldOnHold=sortByKey(oldOnHold,3)
 
 
-# In[167]:
+# In[499]:
+
+#Get the nominations ON REVIEW for 7 days or longer
+onRev=dateActions(onRev,2)
+oldOnRev=[]
+for item in onRev:
+    if int(item[3]) >= 7:
+        oldOnRev.append(item)
+oldOnRev=sortByKey(oldOnRev,3)
+
+
+# In[500]:
+
+#Get the nominations ON SECOND OPINION for 7 days or longer
+scnOp=dateActions(scnOp,2)
+oldScnOp=[]
+for item in scnOp:
+    if int(item[3]) >= 7:
+        oldScnOp.append(item)
+oldScnOp=sortByKey(oldScnOp,3)
+
+
+# In[501]:
+
+#Make the Page
+report = ['== Exceptions report ==\n',
+          '=== Holds over 7 days old ===\n']
+report=appendUpdates(report,oldOnHold,index=3)
+report+=[
+        '\n',
+        '=== Old reviews ===\n',
+        ":''Nominations that have been marked under review for 7 days or longer.'''\n"
+    ]
+report=appendUpdates(report,oldOnRev,3)
+report+=[
+    '\n',
+    '=== Old requests for 2nd opinion ===',
+    ":''Nominations that have been marked requesting a second opinion for 7 days or longer.''"
+]
+report=appendUpdates(report,oldScnOp,3)
+report+=[
+    '\n',
+    '=== Old nominations ===',
+    ":''All nominations that were added 30 days ago or longer, regardless of other activity.''"
+]
+report=appendUpdates(report,oThirty,2)
+
+
+# In[502]:
 
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
-
-
-# In[168]:
-
 x=page.text.split('\n')
 
 
-# In[169]:
+# In[504]:
 
 passed = 0
 
 
-# In[170]:
+# In[505]:
 
 for line in x:
-    if '=== Old nominations ===' not in line and passed == 0:
+    if '== Exceptions report ==' not in line and passed == 0:
         toPrint.append(line)
-    elif '=== Old nominations ===' in line:
+    elif '== Exceptions report ==' in line:
         passed=1
-        toPrint.append(line)
-        toPrint.append(":''All nominations that were added 30 days ago or longer, regardless of other activity.''")
-        toPrint=appendUpdates(toPrint,oThirty)
-    elif '===' in line and passed == 1:
+        toPrint.append('<!-- The below sections updated at '+wikiTimeStamp()+' by WugBot -->')
+        toPrint+=report
+        toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by WugBot -->')
+    elif '=== Malformed nominations ===' in line and passed == 1:
         passed = 2
         toPrint.append(line)
     elif passed == 1:
@@ -152,15 +226,7 @@ for line in x:
         toPrint.append(line)
 
 
-# In[204]:
-
-toPrint.pop()
-toPrint.append('<!-- Partially updated at '+
-               str(datetime.datetime.utcnow().hour)+':'+str(datetime.datetime.utcnow().minute)+', '+str(datetime.datetime.utcnow().day)+' '+monthConvert(datetime.datetime.utcnow().month)+' '+str(datetime.datetime.utcnow().year)+
-              ' by WugBot-->')
+# In[ ]:
 
 
-# In[205]:
-
-toPrint
 
