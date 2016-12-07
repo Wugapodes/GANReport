@@ -1,5 +1,4 @@
 
-# coding: utf-8
 
 # In[588]:
 
@@ -56,8 +55,9 @@ def appendUpdates(toprint,updates,index=2):
 def dateActions(entryList,index):
     for item in entryList:
         iMatch = datRegex.search(item[index])
+        print type(iMatch.group(2))
         day = int(iMatch.group(1))
-        month = int(monthConvert(iMatch.group(2)))
+        month = monthConvert(str(iMatch.group(2)))
         year = int(iMatch.group(3))
         d0 = date(year, month, day)
         delta = today-d0
@@ -214,9 +214,9 @@ for line in x:
         toPrint.append(line+'\n')
     elif '== Exceptions report ==' in line:
         passed=1
-        toPrint.append('<!-- The below sections updated at '+wikiTimeStamp()+' by WugBot -->')
+        toPrint.append('<!-- The below sections updated at '+wikiTimeStamp()+' by WugBot -->\n')
         toPrint+=report
-        toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by WugBot -->')
+        toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by WugBot -->\n')
     elif '=== Malformed nominations ===' in line and passed == 1:
         passed = 2
         toPrint.append(line+'\n')
@@ -231,7 +231,6 @@ for line in x:
 page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
 page.text=''.join(toPrint)
 page.save(summary='Testing Bot in own userspace. See [[WP:BRFA]] for comments.')
-
 
 # In[ ]:
 
