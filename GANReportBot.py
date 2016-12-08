@@ -1,14 +1,9 @@
 #!/usr/bin/python
 
-# In[588]:
-
 import pywikibot
 import re
 from datetime import date
 import datetime
-
-
-# In[589]:
 
 def monthConvert(name):
     if type(name) is str:
@@ -40,20 +35,14 @@ def monthConvert(name):
         elif name == 12: return('December')
         else: raise ValueError
 
-
-# In[590]:
-
 def appendUpdates(toprint,updates,index=2):
     for item in updates:
         text = '# [['+item[0]+"]] ('''"+str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
 
-
-# In[591]:
-
-def dateActions(entryList,index):
-    for item in entryList:
+def dateActions(nominList,index):
+    for item in nominList:
         iMatch = datRegex.search(item[index])
         day = int(iMatch.group(1))
         month = monthConvert(str(iMatch.group(2)))
@@ -62,17 +51,11 @@ def dateActions(entryList,index):
         delta = today-d0
         item.append(delta.days)
         #print(delta.days,'days')
-    return(entryList)
+    return(nominList)
 
-
-# In[592]:
-
-def sortByKey(entryList,index):
-    entryList.sort(key=lambda x: x[index],reverse=True)
-    return(entryList)
-
-
-# In[593]:
+def sortByKey(nominList,index):
+    nominList.sort(key=lambda x: x[index],reverse=True)
+    return(nominList)
 
 def wikiTimeStamp():
     stamp = str(datetime.datetime.utcnow().hour)+        ':'+str(datetime.datetime.utcnow().minute).zfill(2)+        ', '+        str(datetime.datetime.utcnow().day)+        ' '+        monthConvert(datetime.datetime.utcnow().month)+        ' '+        str(datetime.datetime.utcnow().year)
@@ -83,36 +66,26 @@ def wikiTimeStamp():
 #if counter >= 7:
 #    exit()
 
-
-# In[594]:
-
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 
-
-# In[595]:
-
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
-entRegex = re.compile(r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\n(.*)\n')
+entRegex = re.compile(r'\{\{GANnomin.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\n(.*)\n')
 ##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
 
-
-# In[596]:
-
 entry   = []
+nomin   = []
 onRev   = []
 onHld   = []
 waitg   = []
 scnOp   = []
 toPrint = []
 
-
-# In[597]:
-
 #Find the Nomination entries and then sort them into on hold, 2nd opinion, or on revivew
 for match in entRegex.findall(page.text):
+	entry.append([match[0],match[1]])
     if 'GAReview' in match[2]:
         if 'on hold' in match[2]:
             onHld.append([match[0],match[1],match[2]])
@@ -121,27 +94,32 @@ for match in entRegex.findall(page.text):
         else:
             onRev.append([match[0],match[1],match[2]])
     else:
-        entry.append([match[0],match[1]])
-
-
-# In[598]:
+        nomin.append([match[0],match[1]])
 
 #Get the date
 today = date.today()
 
+#Get backlog stats
+noms = len(entry)
+inac = len(nomin)
+ohld = len(onHld)
+orev = len(onRev)
+scnd = len(scnOp)
 
-# In[599]:
-
-#Get nominations older than 30 days
+#Get all nominations older than 30 days
 entry = dateActions(entry,1)
+topTen = []
+entry=sortByKey(entry,2)
+while len(topTen) < 10:
+	topTen.append(entry.remove(0))
+
+#Get unactioned nominations older than 30 days
+nomin = dateActions(nomin,1)
 oThirty=[]
-for item in entry:
+for item in nomin:
     if int(item[2]) >= 30:
         oThirty.append(item)
 oThirty=sortByKey(oThirty,2)
-
-
-# In[600]:
 
 #Get the nominations ON HOLD 7 days or longer
 onHld=dateActions(onHld,2)
@@ -150,9 +128,6 @@ for item in onHld:
     if int(item[3]) >= 7:
         oldOnHold.append(item)
 oldOnHold=sortByKey(oldOnHold,3)
-
-
-# In[601]:
 
 #Get the nominations ON REVIEW for 7 days or longer
 onRev=dateActions(onRev,2)
@@ -173,11 +148,36 @@ for item in scnOp:
         oldScnOp.append(item)
 oldScnOp=sortByKey(oldScnOp,3)
 
+page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 
-# In[603]:
+#Make Backlog report
+backlogReport = []
+for match in re.findall(r'(\d.*?\/>)',page.text):
+	backlogReport.append(match.group(0))
+curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; '+
+	str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x '+
+	str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev)+
+	'; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x '+
+	str(scnd)+'<br />'
+backlogReport.insert(0,curEntry)
+backlogReport.pop()
 
 #Make the Page
-report = ['== Exceptions report ==\n',
+report = ['{{/top}}\n\n',
+          '== Oldest nominations ==\n',
+          ":''List of the oldest ten nominations that have had no activity \
+          (placed on hold, under review or requesting a 2nd opinion)''\n",
+    ]
+report = appendUpdates(report,topTen,index=2)
+report+= ['\n',
+          '== Backlog report ==\n',]
+
+for item in backlogReport:
+	report.append(item)
+	
+report+= [":''Previous daily backlogs can be viewed at the \
+          [[/Backlog archive|backlog archive]].''\n\n",
+          '== Exceptions report ==\n',
           '=== Holds over 7 days old ===\n']
 report=appendUpdates(report,oldOnHold,index=3)
 report+=[
@@ -199,43 +199,26 @@ report+=[
 ]
 report=appendUpdates(report,oThirty,2)
 
-
-# In[604]:
-
-page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
-x=page.text.split('\n')
-
-
-# In[605]:
-
+#Get unchanged portions of the page and organize the page
 passed = 0
-
-
-# In[606]:
-
+toPrint+=report
+toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by \
+	WugBot -->\n')
+x=page.text.split('\n')
 for line in x:
-    if '== Exceptions report ==' not in line and passed == 0:
+    if 'The above sections updated at' in line:
+    	passed=1
         toPrint.append(line+'\n')
-    elif '== Exceptions report ==' in line:
-        passed=1
-        toPrint.append('<!-- The below sections updated at '+wikiTimeStamp()+' by WugBot -->\n')
-        toPrint+=report
-        toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by WugBot -->\n')
-    elif '=== Malformed nominations ===' in line and passed == 1:
-        passed = 2
+    elif passed==1:
         toPrint.append(line+'\n')
-    elif passed == 1:
-        continue
-    elif passed == 2:
-        toPrint.append(line+'\n')
+    else:
+    	continue
 
-
-# In[607]:
-
-#page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
+#Write the page
+page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
 page.text=''.join(toPrint)
-page.save('Updating exceptions report')
-#print("Hello")
+page.save('Testing expanded reporting')
+#page.save('Updating exceptions report')
 print(wikiTimeStamp())
 
 #with open('/data/project/ganreportbot/pywikibot/limit.txt','w') as f:
