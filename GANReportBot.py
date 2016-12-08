@@ -219,7 +219,7 @@ page.save('Testing expanded reporting')
 print(wikiTimeStamp())
 
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/Backlog archive')
-page.text+='\n'
+page.text+='<br />\n'
 page.text+=oldLine
 #Test Section
 testText=page.text
