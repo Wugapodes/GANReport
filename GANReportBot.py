@@ -106,18 +106,18 @@ ohld = len(onHld)
 orev = len(onRev)
 scnd = len(scnOp)
 
-#Get all nominations older than 30 days
+#Get all unreviewed nominations older than 30 days
 oldestnoms = nomin
 oldestnoms = dateActions(oldestnoms,1)
 topTen = []
-entry=sortByKey(oldestnoms,2)
+oldestnoms=sortByKey(oldestnoms,2)
 while len(topTen) < 10:
     topTen.append(oldestnoms.pop(0))
 
-#Get unactioned nominations older than 30 days
-nomin = dateActions(nomin,1)
+#Get all nominations older than 30 days
+entry = dateActions(entry,1)
 oThirty=[]
-for item in nomin:
+for item in entry:
     if int(item[2]) >= 30:
         oThirty.append(item)
 oThirty=sortByKey(oThirty,2)
@@ -195,7 +195,19 @@ report+=[
     '=== Old nominations ===\n',
     ":''All nominations that were added 30 days ago or longer, regardless of other activity.''\n"
 ]
-report=appendUpdates(report,oThirty,2)
+for item in entry:
+    if item[0] in onHld:
+        text = '# [[Image:Symbol wait.svg|15px|On Hold]] [['+item[0]+"]] \
+                ('''"+str(item[2])+"''' days)\n"
+    elif item[0] in onRev:
+        text = '# [[Image:Searchtool.svg|15px|Under Review]] [['+item[0]+"]] \
+                ('''"+str(item[2])+"''' days)\n"
+    elif item[0] in scnOp:
+        text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] \
+                [['+item[0]+"]] ('''"+str(item[2])+"''' days)\n"
+    else:
+        text = '# [['+item[0]+"]] ('''"+str(item[2])+"''' days)\n"
+    report.append(text)
 
 #Get unchanged portions of the page and organize the page
 passed = 0
