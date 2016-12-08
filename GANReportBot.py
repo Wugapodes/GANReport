@@ -85,7 +85,7 @@ toPrint = []
 
 #Find the Nomination entries and then sort them into on hold, 2nd opinion, or on revivew
 for match in entRegex.findall(page.text):
-	entry.append([match[0],match[1]])
+    entry.append([match[0],match[1]])
     if 'GAReview' in match[2]:
         if 'on hold' in match[2]:
             onHld.append([match[0],match[1],match[2]])
@@ -111,7 +111,7 @@ entry = dateActions(entry,1)
 topTen = []
 entry=sortByKey(entry,2)
 while len(topTen) < 10:
-	topTen.append(entry.remove(0))
+    topTen.append(entry.remove(0))
 
 #Get unactioned nominations older than 30 days
 nomin = dateActions(nomin,1)
@@ -153,12 +153,12 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 #Make Backlog report
 backlogReport = []
 for match in re.findall(r'(\d.*?\/>)',page.text):
-	backlogReport.append(match.group(0))
+    backlogReport.append(match.group(0))
 curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; '+
-	str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x '+
-	str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev)+
-	'; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x '+
-	str(scnd)+'<br />'
+    str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x '+
+    str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev)+
+    '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x '+
+    str(scnd)+'<br />'
 backlogReport.insert(0,curEntry)
 backlogReport.pop()
 
@@ -173,8 +173,8 @@ report+= ['\n',
           '== Backlog report ==\n',]
 
 for item in backlogReport:
-	report.append(item)
-	
+    report.append(item)
+    
 report+= [":''Previous daily backlogs can be viewed at the \
           [[/Backlog archive|backlog archive]].''\n\n",
           '== Exceptions report ==\n',
@@ -203,16 +203,16 @@ report=appendUpdates(report,oThirty,2)
 passed = 0
 toPrint+=report
 toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by \
-	WugBot -->\n')
+    WugBot -->\n')
 x=page.text.split('\n')
 for line in x:
     if 'The above sections updated at' in line:
-    	passed=1
+        passed=1
         toPrint.append(line+'\n')
     elif passed==1:
         toPrint.append(line+'\n')
     else:
-    	continue
+        continue
 
 #Write the page
 page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
@@ -222,4 +222,4 @@ page.save('Testing expanded reporting')
 print(wikiTimeStamp())
 
 #with open('/data/project/ganreportbot/pywikibot/limit.txt','w') as f:
-#	f.write(counter+1)
+#    f.write(counter+1)
