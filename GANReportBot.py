@@ -107,11 +107,12 @@ orev = len(onRev)
 scnd = len(scnOp)
 
 #Get all nominations older than 30 days
-entry = dateActions(entry,1)
+oldestnoms = nomin
+oldestnoms = dateActions(oldestnoms,1)
 topTen = []
-entry=sortByKey(entry,2)
+entry=sortByKey(oldestnoms,2)
 while len(topTen) < 10:
-    topTen.append(entry.pop(0))
+    topTen.append(oldestnoms.pop(0))
 
 #Get unactioned nominations older than 30 days
 nomin = dateActions(nomin,1)
