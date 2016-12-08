@@ -99,8 +99,7 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\
-        (?=\n(.*?)\n)'
+        r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)(?=\n(.*?)\n)'
     )
 ##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
@@ -115,12 +114,12 @@ toPrint = []
 
 # Find the Nomination entries and then sort them into on hold, 
 #     2nd opinion, or on revivew
+#   DATA FORMAT 
+#       match[0] = Title of the nominated article
+#       match[1] = Timestamp
+#       match[2] = The line following
 for match in entRegex.findall(page.text):
-    # DATA FORMAT 
-    #     match[0] = Title of the nominated article
-    #     match[1] = Timestamp
-    #     match[2] = The line following
-    entry.append([match[0],match[1]],match[2])
+    entry.append([match[0],match[1],match[2]])
     if 'GAReview' in match[2]:
         if 'on hold' in match[2]:
             onHld.append([match[0],match[1],match[2]])
@@ -153,7 +152,7 @@ while len(topTen) < 10:
 entry = dateActions(entry,1)
 oThirty=[]
 for item in entry:
-    if int(item[2]) >= 30:
+    if int(item[3]) >= 30:
         oThirty.append(item)
 oThirty=sortByKey(oThirty,3)
 
