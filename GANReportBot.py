@@ -1,4 +1,4 @@
-
+#!/usr/bin/python
 
 # In[588]:
 
@@ -55,7 +55,6 @@ def appendUpdates(toprint,updates,index=2):
 def dateActions(entryList,index):
     for item in entryList:
         iMatch = datRegex.search(item[index])
-        print type(iMatch.group(2))
         day = int(iMatch.group(1))
         month = monthConvert(str(iMatch.group(2)))
         year = int(iMatch.group(3))
@@ -76,8 +75,13 @@ def sortByKey(entryList,index):
 # In[593]:
 
 def wikiTimeStamp():
-    stamp = str(datetime.datetime.utcnow().hour)+        ':'+str(datetime.datetime.utcnow().minute)+        ', '+        str(datetime.datetime.utcnow().day)+        ' '+        monthConvert(datetime.datetime.utcnow().month)+        ' '+        str(datetime.datetime.utcnow().year)
+    stamp = str(datetime.datetime.utcnow().hour)+        ':'+str(datetime.datetime.utcnow().minute).zfill(2)+        ', '+        str(datetime.datetime.utcnow().day)+        ' '+        monthConvert(datetime.datetime.utcnow().month)+        ' '+        str(datetime.datetime.utcnow().year)
     return(stamp)
+
+#with open('/data/project/ganreportbot/pywikibot/limit.txt','r') as f:
+#    counter = int(f.read().rstrip())
+#if counter >= 7:
+#    exit()
 
 
 # In[594]:
@@ -228,11 +232,11 @@ for line in x:
 
 # In[607]:
 
-page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
+#page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
 page.text=''.join(toPrint)
-page.save(summary='Testing Bot in own userspace. See [[WP:BRFA]] for comments.')
+page.save('Updating exceptions report')
+#print("Hello")
+print(wikiTimeStamp())
 
-# In[ ]:
-
-
-
+#with open('/data/project/ganreportbot/pywikibot/limit.txt','w') as f:
+#	f.write(counter+1)
