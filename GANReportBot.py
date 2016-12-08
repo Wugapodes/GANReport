@@ -71,7 +71,7 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
-entRegex = re.compile(r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\n(.*)\n')
+entRegex = re.compile(r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)(?=\n(.*?)\n)')
 ##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
 
