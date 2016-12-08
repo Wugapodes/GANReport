@@ -196,13 +196,13 @@ report+=[
     ":''All nominations that were added 30 days ago or longer, regardless of other activity.''\n"
 ]
 for item in entry:
-    if item[0] in onHld:
+    if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] [['+item[0]+"]] \
                 ('''"+str(item[2])+"''' days)\n"
-    elif item[0] in onRev:
+    elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] [['+item[0]+"]] \
                 ('''"+str(item[2])+"''' days)\n"
-    elif item[0] in scnOp:
+    elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] \
                 [['+item[0]+"]] ('''"+str(item[2])+"''' days)\n"
     else:
