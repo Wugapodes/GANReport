@@ -58,7 +58,7 @@ def sortByKey(nominList,index):
     return(nominList)
 
 def wikiTimeStamp():
-    stamp = str(datetime.datetime.utcnow().hour)+        ':'+str(datetime.datetime.utcnow().minute).zfill(2)+        ', '+        str(datetime.datetime.utcnow().day)+        ' '+        monthConvert(datetime.datetime.utcnow().month)+        ' '+        str(datetime.datetime.utcnow().year)
+    stamp = str(datetime.datetime.utcnow().hour).zfill(2)+        ':'+str(datetime.datetime.utcnow().minute).zfill(2)+        ', '+        str(datetime.datetime.utcnow().day)+        ' '+        monthConvert(datetime.datetime.utcnow().month)+        ' '+        str(datetime.datetime.utcnow().year)+' (UTC)'
     return(stamp)
 
 #with open('/data/project/ganreportbot/pywikibot/limit.txt','r') as f:
@@ -137,9 +137,6 @@ for item in onRev:
         oldOnRev.append(item)
 oldOnRev=sortByKey(oldOnRev,3)
 
-
-# In[602]:
-
 #Get the nominations ON SECOND OPINION for 7 days or longer
 scnOp=dateActions(scnOp,2)
 oldScnOp=[]
@@ -158,9 +155,9 @@ curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
     + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
     + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
     + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
-    + str(scnd)+'<br />'
+    + str(scnd)+'<br />\n'
 backlogReport.insert(0,curEntry)
-backlogReport.pop()
+oldLine=backlogReport.pop()
 
 #Make the Page
 report = ['{{/top}}\n\n',
@@ -220,6 +217,17 @@ page.text=''.join(toPrint)
 page.save('Testing expanded reporting')
 #page.save('Updating exceptions report')
 print(wikiTimeStamp())
+
+page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/Backlog archive')
+page.text+=oldLine
+page.text+='\n'
+#Test Section
+testText=page.text
+page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/Backlog archive')
+page.text=testText
+page.save('Testing backlog report updating')
+
+#page.save('Update of GAN report backlog')
 
 #with open('/data/project/ganreportbot/pywikibot/limit.txt','w') as f:
 #    f.write(counter+1)
