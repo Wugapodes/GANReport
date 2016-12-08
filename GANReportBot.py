@@ -154,11 +154,11 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 backlogReport = []
 for match in re.findall(r'(\d.*?\/>)',page.text):
     backlogReport.append(match.group(0))
-curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; '+
-    str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x '+
-    str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev)+
-    '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x '+
-    str(scnd)+'<br />'
+curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
+    + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
+    + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
+    + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
+    + str(scnd)+'<br />'
 backlogReport.insert(0,curEntry)
 backlogReport.pop()
 
