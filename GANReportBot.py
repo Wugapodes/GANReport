@@ -150,12 +150,12 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 #Make Backlog report
 backlogReport = []
 for match in re.findall(r'(\d.*?\/>)',page.text):
-    backlogReport.append(match)
+    backlogReport.append(match+'\n')
 curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
     + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
     + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
     + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
-    + str(scnd)+'<br />\n'
+    + str(scnd)+'<br />'
 backlogReport.insert(0,curEntry)
 oldLine=backlogReport.pop()
 
@@ -219,8 +219,8 @@ page.save('Testing expanded reporting')
 print(wikiTimeStamp())
 
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/Backlog archive')
-page.text+=oldLine
 page.text+='\n'
+page.text+=oldLine
 #Test Section
 testText=page.text
 page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/Backlog archive')
