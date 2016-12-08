@@ -235,15 +235,15 @@ report+=[
 for item in oThirty:
     if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] [['+item[0]+"]] \
-                ('''"+str(item[2])+"''' days)\n"
+                ('''"+str(item[3])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] [['+item[0]+"]] \
-                ('''"+str(item[2])+"''' days)\n"
+                ('''"+str(item[3])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] \
-                [['+item[0]+"]] ('''"+str(item[2])+"''' days)\n"
+                [['+item[0]+"]] ('''"+str(item[3])+"''' days)\n"
     else:
-        text = '# [['+item[0]+"]] ('''"+str(item[2])+"''' days)\n"
+        text = '# [['+item[0]+"]] ('''"+str(item[3])+"''' days)\n"
     report.append(text)
 
 #Get unchanged portions of the page and organize the page
