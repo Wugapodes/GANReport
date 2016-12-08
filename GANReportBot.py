@@ -5,7 +5,16 @@ import re
 from datetime import date
 import datetime
 
+live = 0
+
 def monthConvert(name):
+    '''
+    Takes in either the name of the month or the number of the month and returns
+    the opposite. An input of str(July) would return int(7) while an input of
+    int(6) would return str(June).
+    Takes:   int OR string
+    Returns: string OR int
+    '''
     if type(name) is str:
         if name == "January": return 1
         elif name == "February": return 2
@@ -35,13 +44,21 @@ def monthConvert(name):
         elif name == 12: return('December')
         else: raise ValueError
 
-def appendUpdates(toprint,updates,index=2):
+def appendUpdates(toprint,updates,index=3):
+    '''
+    Takes an iterable array and the output array and returns teh output array 
+    appended with the marked up iterable array.
+    '''
     for item in updates:
         text = '# [['+item[0]+"]] ('''"+str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
 
 def dateActions(nominList,index):
+    '''
+    For a given list, it finds the embedded date, how many days ago that date is
+    from today, and appends that number to the list. It then returns the list
+    '''
     for item in nominList:
         iMatch = datRegex.search(item[index])
         day = int(iMatch.group(1))
@@ -54,11 +71,21 @@ def dateActions(nominList,index):
     return(nominList)
 
 def sortByKey(nominList,index):
+    '''
+    Sorts a given list by a given index in a sublist, largest first
+    '''
     nominList.sort(key=lambda x: x[index],reverse=True)
     return(nominList)
 
 def wikiTimeStamp():
-    stamp = str(datetime.datetime.utcnow().hour).zfill(2)+        ':'+str(datetime.datetime.utcnow().minute).zfill(2)+        ', '+        str(datetime.datetime.utcnow().day)+        ' '+        monthConvert(datetime.datetime.utcnow().month)+        ' '+        str(datetime.datetime.utcnow().year)+' (UTC)'
+    '''
+    Returns the current time stamp in the style of wikipedia signatures.
+    '''
+    stamp = str(datetime.datetime.utcnow().hour).zfill(2)+':'\
+    +str(datetime.datetime.utcnow().minute).zfill(2)+', '\
+    +str(datetime.datetime.utcnow().day)+' '\
+    +monthConvert(datetime.datetime.utcnow().month)+' '\
+    +str(datetime.datetime.utcnow().year)+' (UTC)'
     return(stamp)
 
 #with open('/data/project/ganreportbot/pywikibot/limit.txt','r') as f:
@@ -71,7 +98,10 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
-entRegex = re.compile(r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)(?=\n(.*?)\n)')
+entRegex = re.compile(
+        r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\
+        (?=\n(.*?)\n)'
+    )
 ##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
 
@@ -83,9 +113,14 @@ waitg   = []
 scnOp   = []
 toPrint = []
 
-#Find the Nomination entries and then sort them into on hold, 2nd opinion, or on revivew
+# Find the Nomination entries and then sort them into on hold, 
+#     2nd opinion, or on revivew
 for match in entRegex.findall(page.text):
-    entry.append([match[0],match[1]])
+    # DATA FORMAT 
+    #     match[0] = Title of the nominated article
+    #     match[1] = Timestamp
+    #     match[2] = The line following
+    entry.append([match[0],match[1]],match[2])
     if 'GAReview' in match[2]:
         if 'on hold' in match[2]:
             onHld.append([match[0],match[1],match[2]])
@@ -120,7 +155,7 @@ oThirty=[]
 for item in entry:
     if int(item[2]) >= 30:
         oThirty.append(item)
-oThirty=sortByKey(oThirty,2)
+oThirty=sortByKey(oThirty,3)
 
 #Get the nominations ON HOLD 7 days or longer
 onHld=dateActions(onHld,2)
@@ -181,19 +216,22 @@ report=appendUpdates(report,oldOnHold,index=3)
 report+=[
         '\n',
         '=== Old reviews ===\n',
-        ":''Nominations that have been marked under review for 7 days or longer.'''\n"
+        ":''Nominations that have been marked under review for 7 days or \
+        longer.'''\n"
     ]
 report=appendUpdates(report,oldOnRev,3)
 report+=[
     '\n',
     '=== Old requests for 2nd opinion ===\n',
-    ":''Nominations that have been marked requesting a second opinion for 7 days or longer.''\n"
+    ":''Nominations that have been marked requesting a second opinion for 7 \
+    days or longer.''\n"
 ]
 report=appendUpdates(report,oldScnOp,3)
 report+=[
     '\n',
     '=== Old nominations ===\n',
-    ":''All nominations that were added 30 days ago or longer, regardless of other activity.''\n"
+    ":''All nominations that were added 30 days ago or longer, regardless of \
+    other activity.''\n"
 ]
 for item in oThirty:
     if any(item[0] in i for i in onHld):
@@ -224,23 +262,27 @@ for line in x:
     else:
         continue
 
-#Write the page
-page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
-page.text=''.join(toPrint)
-page.save('Testing expanded reporting')
-#page.save('Updating exceptions report')
+# Determine if the bot should write to a live page or the test page. Defaults to 
+#     test page. Value of -1 tests backlog update (not standard because the file
+#     size is very big).
+if live == 1:
+    page.text=''.join(toPrint)
+    page.save('Updating exceptions report')
+    page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/Backlog archive')
+    page.text+='<br />\n'
+    page.text+=oldLine
+    page.save('Update of GAN report backlog')
+else:
+    page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
+    page.text=''.join(toPrint)
+    page.save('Testing expanded reporting')
+    if live==-1:
+        page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/Backlog archive')
+        testText=page.text
+        page.text=testText
+        page.save('Testing backlog report updating')
+    
 print(wikiTimeStamp())
-
-page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/Backlog archive')
-page.text+='<br />\n'
-page.text+=oldLine
-#Test Section
-testText=page.text
-#page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/Backlog archive')
-#page.text=testText
-#page.save('Testing backlog report updating')
-
-#page.save('Update of GAN report backlog')
 
 #with open('/data/project/ganreportbot/pywikibot/limit.txt','w') as f:
 #    f.write(counter+1)
