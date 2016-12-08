@@ -195,7 +195,7 @@ report+=[
     '=== Old nominations ===\n',
     ":''All nominations that were added 30 days ago or longer, regardless of other activity.''\n"
 ]
-for item in entry:
+for item in oThirty:
     if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] [['+item[0]+"]] \
                 ('''"+str(item[2])+"''' days)\n"
@@ -236,9 +236,9 @@ page.text+='<br />\n'
 page.text+=oldLine
 #Test Section
 testText=page.text
-page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/Backlog archive')
-page.text=testText
-page.save('Testing backlog report updating')
+#page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/Backlog archive')
+#page.text=testText
+#page.save('Testing backlog report updating')
 
 #page.save('Update of GAN report backlog')
 
