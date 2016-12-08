@@ -71,7 +71,7 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
-entRegex = re.compile(r'\{\{GANnomin.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\n(.*)\n')
+entRegex = re.compile(r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)\n(.*)\n')
 ##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
 
@@ -153,7 +153,7 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 #Make Backlog report
 backlogReport = []
 for match in re.findall(r'(\d.*?\/>)',page.text):
-    backlogReport.append(match.group(0))
+    backlogReport.append(match)
 curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
     + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
     + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
