@@ -5,7 +5,13 @@ import re
 from datetime import date
 import datetime
 
+########
+# Changing this to 1 makes your changes live on the report page, do not set to
+# live mode unless you have been approved for bot usage. Do not merge commits 
+# where this is not default to 0
+########
 live = 0
+########
 
 def monthConvert(name):
     '''
@@ -215,22 +221,22 @@ report=appendUpdates(report,oldOnHold,index=3)
 report+=[
         '\n',
         '=== Old reviews ===\n',
-        ":''Nominations that have been marked under review for 7 days or \
-        longer.'''\n"
+        ":''Nominations that have been marked under review for 7 days or "\
+        +"longer.''\n"
     ]
 report=appendUpdates(report,oldOnRev,3)
 report+=[
     '\n',
     '=== Old requests for 2nd opinion ===\n',
-    ":''Nominations that have been marked requesting a second opinion for 7 \
-    days or longer.''\n"
+    ":''Nominations that have been marked requesting a second opinion for 7 "\
+    +"days or longer.''\n"
 ]
 report=appendUpdates(report,oldScnOp,3)
 report+=[
     '\n',
     '=== Old nominations ===\n',
-    ":''All nominations that were added 30 days ago or longer, regardless of \
-    other activity.''\n"
+    ":''All nominations that were added 30 days ago or longer, regardless of "\
+    +"other activity.''\n"
 ]
 for item in oThirty:
     if any(item[0] in i for i in onHld):
