@@ -137,7 +137,6 @@ def updateSummary(section,subsection=False):
         text += '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x '+s+'\n'
     return(text)
      
-
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 fullText= page.text
@@ -250,6 +249,8 @@ ohld = len(onHld)
 orev = len(onRev)
 scnd = len(scnOp)
 
+rIndex = len(oldOnHold[0])-1
+
 #Get all unreviewed nominations older than 30 days
 oldestnoms = nomin
 oldestnoms = dateActions(oldestnoms,4)
@@ -270,25 +271,25 @@ oThirty=sortByKey(oThirty,6)
 onHld=dateActions(onHld,5)
 oldOnHold=[]
 for item in onHld:
-    if int(item[6]) >= 7:
+    if int(item[rIndex]) >= 7:
         oldOnHold.append(item)
-oldOnHold=sortByKey(oldOnHold,7)
+oldOnHold=sortByKey(oldOnHold,rIndex)
 
 #Get the nominations ON REVIEW for 7 days or longer
 onRev=dateActions(onRev,5)
 oldOnRev=[]
 for item in onRev:
-    if int(item[6]) >= 7:
+    if int(item[rIndex]) >= 7:
         oldOnRev.append(item)
-oldOnRev=sortByKey(oldOnRev,7)
+oldOnRev=sortByKey(oldOnRev,rIndex)
 
 #Get the nominations ON SECOND OPINION for 7 days or longer
 scnOp=dateActions(scnOp,5)
 oldScnOp=[]
 for item in scnOp:
-    if int(item[6]) >= 7:
+    if int(item[rIndex]) >= 7:
         oldScnOp.append(item)
-oldScnOp=sortByKey(oldScnOp,7)
+oldScnOp=sortByKey(oldScnOp,rIndex)
 
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 
@@ -321,21 +322,21 @@ report+= [":''Previous daily backlogs can be viewed at the \
           [[/Backlog archive|backlog archive]].''\n\n",
           '== Exceptions report ==\n',
           '=== Holds over 7 days old ===\n']
-report=appendUpdates(report,oldOnHold,index=6)
+report=appendUpdates(report,oldOnHold,rIndex)
 report+=[
         '\n',
         '=== Old reviews ===\n',
         ":''Nominations that have been marked under review for 7 days or "\
         +"longer.''\n"
     ]
-report=appendUpdates(report,oldOnRev,6)
+report=appendUpdates(report,oldOnRev,rIndex)
 report+=[
     '\n',
     '=== Old requests for 2nd opinion ===\n',
     ":''Nominations that have been marked requesting a second opinion for 7 "\
     +"days or longer.''\n"
 ]
-report=appendUpdates(report,oldScnOp,6)
+report=appendUpdates(report,oldScnOp,rIndex)
 report+=[
     '\n',
     '=== Old nominations ===\n',
