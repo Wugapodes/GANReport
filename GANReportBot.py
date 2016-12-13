@@ -98,11 +98,6 @@ def wikiTimeStamp():
     +str(datetime.datetime.utcnow().year)+' (UTC)'
     return(stamp)
 
-#with open('/data/project/ganreportbot/pywikibot/limit.txt','r') as f:
-#    counter = int(f.read().rstrip())
-#if counter >= 7:
-#    exit()
-
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 fullText= page.text
@@ -111,7 +106,8 @@ fullText=fullText.split('\n')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+).*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+).*?(\d\d\:\d\d, \d+ .*? \d\d\d\d)'\
+        +r' \(UTC\)'
     )
 sctRegex = re.compile(r'==+ (.*?) (==+)')
 ##Finds the Wikipedia UTC Timestamp
@@ -312,7 +308,8 @@ for item in oThirty:
                +str(item[1])+"|"+item[0]+"]] ('''"+str(item[6])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] [[Talk:'+item[0]\
-               +"/GA"+str(item[1])+"|"+item[0]+"]] ('''"+str(item[6])+"''' days)\n"
+               +"/GA"+str(item[1])+"|"+item[0]+"]] ('''"+str(item[6])\
+               +"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
                 +'[[Talk:'+item[0]+"/GA"+str(item[1])+"|"+item[0]+"]] ('''"\
@@ -341,7 +338,8 @@ for line in x:
 if live == 1:
     page.text=''.join(toPrint)
     page.save('Updating exceptions report')
-    page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/Backlog archive')
+    page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
+                                +'Backlog archive')
     page.text+='<br />\n'
     page.text+=oldLine
     page.save('Update of GAN report backlog')
@@ -350,12 +348,10 @@ else:
     page.text=''.join(toPrint)
     page.save('Testing expanded reporting')
     if live==-1:
-        page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/Backlog archive')
+        page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/'\
+                                    +'Backlog archive')
         testText=page.text
         page.text=testText
         page.save('Testing backlog report updating')
     
 print(wikiTimeStamp())
-
-#with open('/data/project/ganreportbot/pywikibot/limit.txt','w') as f:
-#    f.write(counter+1)
