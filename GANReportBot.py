@@ -264,7 +264,7 @@ oThirty=[]
 for item in entry:
     if int(item[6]) >= 30:
         oThirty.append(item)
-oThirty=sortByKey(oThirty,7)
+oThirty=sortByKey(oThirty,6)
 
 #Get the nominations ON HOLD 7 days or longer
 onHld=dateActions(onHld,5)
