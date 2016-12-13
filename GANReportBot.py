@@ -105,7 +105,7 @@ page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|.*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)(?=\n(.*?)\n)'
+        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+).*?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)(?=\n(.*?)\n)'
     )
 ##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
@@ -117,24 +117,26 @@ onHld   = []
 waitg   = []
 scnOp   = []
 toPrint = []
+nomsBySection = {}
 
 # Find the Nomination entries and then sort them into on hold, 
 #     2nd opinion, or on revivew
 #   DATA FORMAT 
 #       match[0] = Title of the nominated article
-#       match[1] = Timestamp
-#       match[2] = The line following
+#       match[1] = Nomination number
+#       match[2] = Timestamp
+#       match[3] = The line following
 for match in entRegex.findall(page.text):
-    entry.append([match[0],match[1],match[2]])
-    if 'GAReview' in match[2]:
-        if 'on hold' in match[2]:
-            onHld.append([match[0],match[1],match[2]])
-        elif '2nd opinion' in match[2]:
-            scnOp.append([match[0],match[1],match[2]])
+    entry.append([match[0],match[1],match[2],match[3]])
+    if 'GAReview' in match[3]:
+        if 'on hold' in match[3]:
+            onHld.append([match[0],match[1],match[2],match[3]])
+        elif '2nd opinion' in match[3]:
+            scnOp.append([match[0],match[1],match[2],match[3]])
         else:
-            onRev.append([match[0],match[1],match[2]])
+            onRev.append([match[0],match[1],match[2],match[3]])
     else:
-        nomin.append([match[0],match[1]])
+        nomin.append([match[0],match[1],match[2]])
 
 #Get the date
 today = date.today()
@@ -148,43 +150,43 @@ scnd = len(scnOp)
 
 #Get all unreviewed nominations older than 30 days
 oldestnoms = nomin
-oldestnoms = dateActions(oldestnoms,1)
+oldestnoms = dateActions(oldestnoms,2)
 topTen = []
-oldestnoms=sortByKey(oldestnoms,2)
+oldestnoms=sortByKey(oldestnoms,3)
 while len(topTen) < 10:
     topTen.append(oldestnoms.pop(0))
 
 #Get all nominations older than 30 days
-entry = dateActions(entry,1)
+entry = dateActions(entry,2)
 oThirty=[]
 for item in entry:
-    if int(item[3]) >= 30:
+    if int(item[4]) >= 30:
         oThirty.append(item)
-oThirty=sortByKey(oThirty,3)
+oThirty=sortByKey(oThirty,4)
 
 #Get the nominations ON HOLD 7 days or longer
-onHld=dateActions(onHld,2)
+onHld=dateActions(onHld,3)
 oldOnHold=[]
 for item in onHld:
-    if int(item[3]) >= 7:
+    if int(item[4]) >= 7:
         oldOnHold.append(item)
-oldOnHold=sortByKey(oldOnHold,3)
+oldOnHold=sortByKey(oldOnHold,4)
 
 #Get the nominations ON REVIEW for 7 days or longer
-onRev=dateActions(onRev,2)
+onRev=dateActions(onRev,3)
 oldOnRev=[]
 for item in onRev:
-    if int(item[3]) >= 7:
+    if int(item[4]) >= 7:
         oldOnRev.append(item)
-oldOnRev=sortByKey(oldOnRev,3)
+oldOnRev=sortByKey(oldOnRev,4)
 
 #Get the nominations ON SECOND OPINION for 7 days or longer
-scnOp=dateActions(scnOp,2)
+scnOp=dateActions(scnOp,3)
 oldScnOp=[]
 for item in scnOp:
-    if int(item[3]) >= 7:
+    if int(item[4]) >= 7:
         oldScnOp.append(item)
-oldScnOp=sortByKey(oldScnOp,3)
+oldScnOp=sortByKey(oldScnOp,4)
 
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 
@@ -203,10 +205,10 @@ oldLine=backlogReport.pop()
 #Make the Page
 report = ['{{/top}}\n\n',
           '== Oldest nominations ==\n',
-          ":''List of the oldest ten nominations that have had no activity \
-          (placed on hold, under review or requesting a 2nd opinion)''\n",
+          ":''List of the oldest ten nominations that have had no activity" \
+          +"(placed on hold, under review or requesting a 2nd opinion)''\n",
     ]
-report = appendUpdates(report,topTen,index=2)
+report = appendUpdates(report,topTen,index=3,rev=False)
 report+= ['\n',
           '== Backlog report ==\n',]
 
@@ -217,21 +219,21 @@ report+= [":''Previous daily backlogs can be viewed at the \
           [[/Backlog archive|backlog archive]].''\n\n",
           '== Exceptions report ==\n',
           '=== Holds over 7 days old ===\n']
-report=appendUpdates(report,oldOnHold,index=3)
+report=appendUpdates(report,oldOnHold,index=4)
 report+=[
         '\n',
         '=== Old reviews ===\n',
         ":''Nominations that have been marked under review for 7 days or "\
         +"longer.''\n"
     ]
-report=appendUpdates(report,oldOnRev,3)
+report=appendUpdates(report,oldOnRev,4)
 report+=[
     '\n',
     '=== Old requests for 2nd opinion ===\n',
     ":''Nominations that have been marked requesting a second opinion for 7 "\
     +"days or longer.''\n"
 ]
-report=appendUpdates(report,oldScnOp,3)
+report=appendUpdates(report,oldScnOp,4)
 report+=[
     '\n',
     '=== Old nominations ===\n',
@@ -240,28 +242,28 @@ report+=[
 ]
 for item in oThirty:
     if any(item[0] in i for i in onHld):
-        text = '# [[Image:Symbol wait.svg|15px|On Hold]] [['+item[0]+"]] \
-                ('''"+str(item[3])+"''' days)\n"
+        text = '# [[Image:Symbol wait.svg|15px|On Hold]] [[Talk:'+item[0]+"/GA"\
+               +str(item[1])+"]] ('''"+str(item[4])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
-        text = '# [[Image:Searchtool.svg|15px|Under Review]] [['+item[0]+"]] \
-                ('''"+str(item[3])+"''' days)\n"
+        text = '# [[Image:Searchtool.svg|15px|Under Review]] [[Talk:'+item[0]\
+               +"/GA"+str(item[1])+"]] ('''"+str(item[4])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
-        text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] \
-                [['+item[0]+"]] ('''"+str(item[3])+"''' days)\n"
+        text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
+                +'[[Talk:'+item[0]+"/GA"+str(item[1])+"]] ('''"+str(item[4])\
+                +"''' days)\n"
     else:
-        text = '# [['+item[0]+"]] ('''"+str(item[3])+"''' days)\n"
+        text = '# [[Talk:'+item[0]+"]] ('''"+str(item[4])+"''' days)\n"
     report.append(text)
 
 #Get unchanged portions of the page and organize the page
 passed = 0
 toPrint+=report
-toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by \
-    WugBot -->\n')
+toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by' \
+    +' WugBot -->\n')
 x=page.text.split('\n')
 for line in x:
     if 'The above sections updated at' in line:
         passed=1
-        toPrint.append(line+'\n')
     elif passed==1:
         toPrint.append(line+'\n')
     else:
