@@ -57,10 +57,10 @@ def appendUpdates(toprint,updates,index=3,rev=True):
     '''
     for item in updates:
         if rev == True:
-            text = '# [[Talk:'+item[0]+"/GA"+str(item[1])+"]] ('''"\
+            text = '# [[Talk:'+item[0]+"/GA"+str(item[1])+"|"+item[0]+"]] ('''"\
                    +str(item[index])+"''' days)\n"
         else:
-            text = '# [[Talk:'+item[0]+"]] ('''"+str(item[index])+"''' days)\n"
+            text = '# [[Talk:'+item[0]+"|]] ('''"+str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
 
@@ -247,16 +247,16 @@ report+=[
 for item in oThirty:
     if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] [[Talk:'+item[0]+"/GA"\
-               +str(item[1])+"]] ('''"+str(item[4])+"''' days)\n"
+               +str(item[1])+"|"+item[0]+"]] ('''"+str(item[4])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] [[Talk:'+item[0]\
-               +"/GA"+str(item[1])+"]] ('''"+str(item[4])+"''' days)\n"
+               +"/GA"+str(item[1])+"|"+item[0]+"]] ('''"+str(item[4])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
-                +'[[Talk:'+item[0]+"/GA"+str(item[1])+"]] ('''"+str(item[4])\
-                +"''' days)\n"
+                +'[[Talk:'+item[0]+"/GA"+str(item[1])+"|"+item[0]+"]] ('''"\
+                +str(item[4])+"''' days)\n"
     else:
-        text = '# [[Talk:'+item[0]+"]] ('''"+str(item[4])+"''' days)\n"
+        text = '# [[Talk:'+item[0]+"|]] ('''"+str(item[4])+"''' days)\n"
     report.append(text)
 
 #Get unchanged portions of the page and organize the page
