@@ -318,6 +318,30 @@ for item in oThirty:
         text = '# [[Talk:'+item[0]+"|]] ('''"+str(item[6])+"''' days)\n"
     report.append(text)
 
+# Counts up all the noms, holds, reviews, and 2nd opinions in each section and
+#   iterates the counter in the nomsBySection datastructure
+for item in entry:
+    if item[2] in nomsBySection and item[3] == None:
+        nomsBySection[item[2]][0]+=1
+        if any(item[0] in i for i in onHld):
+            nomsBySection[item[2]][1]+=1
+        elif any(item[0] in i for i in onRev):
+            nomsBySection[item[2]][2]+=1
+        elif any(item[0] in i for i in scnOp):
+            nomsBySection[item[2]][1]+=1
+    elif item[3] in subSectDict:
+        index=subSectDict[item[3]]
+        nomsBySection[item[2]][index][item[3]][0]+=1
+        if any(item[0] in i for i in onHld):
+            nomsBySection[item[2]][index][item[3]][1]+=1
+        elif any(item[0] in i for i in onRev):
+            nomsBySection[item[2]][index][item[3]][2]+=1
+        elif any(item[0] in i for i in scnOp):
+            nomsBySection[item[2]][index][item[3]][3]+=1
+    else:
+        print(item)
+        raise TypeError('Nominations must have a section or subsection')
+
 #Get unchanged portions of the page and organize the page
 passed = 0
 toPrint+=report
