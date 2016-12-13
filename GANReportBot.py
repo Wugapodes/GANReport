@@ -50,13 +50,17 @@ def monthConvert(name):
         elif name == 12: return('December')
         else: raise ValueError
 
-def appendUpdates(toprint,updates,index=3):
+def appendUpdates(toprint,updates,index=3,rev=True):
     '''
     Takes an iterable array and the output array and returns teh output array 
     appended with the marked up iterable array.
     '''
     for item in updates:
-        text = '# [['+item[0]+"]] ('''"+str(item[index])+"''' days)\n"
+        if rev == True:
+            text = '# [[Talk:'+item[0]+"/GA"+str(item[1])+"]] ('''"\
+                   +str(item[index])+"''' days)\n"
+        else:
+            text = '# [[Talk:'+item[0]+"]] ('''"+str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
 
