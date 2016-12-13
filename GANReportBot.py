@@ -109,7 +109,7 @@ def updateSummary(section,subsection=False):
         r = str(nomsBySection[section][i][subsection][2])
         s = str(nomsBySection[section][i][subsection][3])
         text = ":'''[[Wikipedia:Good article nominations#"+subsection+"|" \
-               +subsection+"]]''' ("+n+"): "
+               +subsection+"]]''' ("+n+")"
     else:
         n = str(nomsBySection[section][0])
         h = str(nomsBySection[section][1])
@@ -117,11 +117,10 @@ def updateSummary(section,subsection=False):
         s = str(nomsBySection[section][3])
         text = "'''[[Wikipedia:Good article nominations#"+section+"|" \
                +section+"]]''' ("+n+")"
-            
-        if int(h)>0 or int(r)>0 or int(s)>0:
-            text+=": \n"
-        else:
-            text+="\n"
+    if int(h)+int(r)+int(s)>0:
+        text+=": \n"
+    else:
+        text+="\n"
     if int(h) > 0:
         text += '[[Image:Symbol wait.svg|15px|On Hold]] x '+h
         if int(r)>0 or int(s)>0:
