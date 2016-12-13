@@ -103,11 +103,11 @@ def updateSummary(section,subsection=False):
     global subSectDict
     if subsection:
         index=subSectDict[subsection]
-        n = nomsBySection[section][index][subsection][0]
+        n = str(nomsBySection[section][index][subsection][0])
         text = ":'''[[Wikipedia:Good article nominations#"+subsection+"|" \
                +subsection+"]]''' ("+n+")\n"
     else:
-        n = nomsBySection[section]
+        n = str(nomsBySection[section][0])
         text = "'''[[Wikipedia:Good article nominations#"+section+"|" \
                +section+"]]''' ("+n+")\n"
     return(text)
@@ -356,7 +356,8 @@ for item in entry:
     else:
         print(item)
         raise TypeError('Nominations must have a section or subsection')
-        
+
+# Creates the summary report by iterating over the nomsBySection data structure        
 summary = []
 for section in nomsBySection:
     summary.append(updateSummary(section))
