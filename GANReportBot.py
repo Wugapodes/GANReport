@@ -56,11 +56,12 @@ def appendUpdates(toprint,updates,index=3,rev=True):
     appended with the marked up iterable array.
     '''
     for item in updates:
-        if rev == True:
-            text = '# [[Talk:'+item[0]+"/GA"+str(item[1])+"|"+item[0]+"]] ('''"\
-                   +str(item[index])+"''' days)\n"
+        if item[4] != None:
+            i = 3
         else:
-            text = '# [[Talk:'+item[0]+"|]] ('''"+str(item[index])+"''' days)\n"
+            i = 2
+        text = '# [[Wikipedia:Good article nominations#'+item[i]+"|" \
+               +item[0]+"]] ('''"+str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
 
@@ -102,14 +103,39 @@ def updateSummary(section,subsection=False):
     global nomsBySection
     global subSectDict
     if subsection:
-        index=subSectDict[subsection]
-        n = str(nomsBySection[section][index][subsection][0])
+        i=4
+        n = str(nomsBySection[section][i][subsection][0])
+        h = str(nomsBySection[section][i][subsection][1])
+        r = str(nomsBySection[section][i][subsection][2])
+        s = str(nomsBySection[section][i][subsection][3])
         text = ":'''[[Wikipedia:Good article nominations#"+subsection+"|" \
-               +subsection+"]]''' ("+n+")\n"
+               +subsection+"]]''' ("+n+"): "
     else:
         n = str(nomsBySection[section][0])
+        h = str(nomsBySection[section][1])
+        r = str(nomsBySection[section][2])
+        s = str(nomsBySection[section][3])
         text = "'''[[Wikipedia:Good article nominations#"+section+"|" \
-               +section+"]]''' ("+n+")\n"
+               +section+"]]''' ("+n+")"
+            
+        if int(h)>0 or int(r)>0 or int(s)>0:
+            text+=": "
+        else:
+            text+="\n"
+    if int(h) > 0:
+        text += '[[Image:Symbol wait.svg|15px|On Hold]] x '+h
+        if int(r)>0 or int(s)>0:
+            text+='; '
+        else:
+            text+='\n'
+    if int(r) > 0:
+        text += '[[Image:Searchtool.svg|15px|Under Review]] x '+r
+        if int(s)>0:
+            text+='; '
+        else:
+            text+='\n'
+    if int(s) > 0:
+        text += '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x '+s+'\n'
     return(text)
      
 
@@ -170,7 +196,7 @@ for line in fullText:
             subSectName=re.search(sctRegex,line).group(1)
             # array nums represent: 
             # [# of noms, # on hold, # on rev, # 2nd opinion]
-            nomsBySection[sectName].append({subSectName:[0,0,0,0]})
+            nomsBySection[sectName][4][subSectName]=[0,0,0,0]
             # keeps track of the indices of subsections in the data structure
             subSectDict[subSectName]=len(nomsBySection[sectName])-1
         else:
@@ -178,7 +204,7 @@ for line in fullText:
             sectName=result.group(1)
             # array nums represent: 
             # [# of noms, # on hold, # on rev, # 2nd opinion]
-            nomsBySection[sectName]=[0,0,0,0]
+            nomsBySection[sectName]=[0,0,0,0,{}]
             subSectName=None
         continue
     elif 'GANentry' in line:
@@ -209,9 +235,9 @@ for line in fullText:
 #   (entry,nomin,onHld,onRev,scnOp)
 #       entryData[0] = Title of the nominated article
 #       entryData[1] = Nomination number
-#       entryData[2] = Timestamp
-#       entryData[3] = section name
-#       entryData[4] = subsection name
+#       entryData[2] = Section name
+#       entryData[3] = Subsection name
+#       entryData[4] = Timestamp
 #       entryData[5] = The line following (not present in nomin or entry)
 #########################################################################
 
@@ -318,19 +344,25 @@ report+=[
     +"other activity.''\n"
 ]
 for item in oThirty:
+    if item[4] != None:
+        j = 3
+    else:
+        j = 2
     if any(item[0] in i for i in onHld):
-        text = '# [[Image:Symbol wait.svg|15px|On Hold]] [[Talk:'+item[0]+"/GA"\
-               +str(item[1])+"|"+item[0]+"]] ('''"+str(item[6])+"''' days)\n"
+        text = '# [[Image:Symbol wait.svg|15px|On Hold]] [[Wikipedia:Good '\
+               +'article nominations#'+item[j]+"|"+item[0]+"]] ('''"\
+               +str(item[6])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
-        text = '# [[Image:Searchtool.svg|15px|Under Review]] [[Talk:'+item[0]\
-               +"/GA"+str(item[1])+"|"+item[0]+"]] ('''"+str(item[6])\
-               +"''' days)\n"
+        text = '# [[Image:Searchtool.svg|15px|Under Review]] [[Wikipedia:Good '\
+               +'article nominations#'+item[j]+"|"+item[0]+"]] ('''"\
+               +str(item[6])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
-                +'[[Talk:'+item[0]+"/GA"+str(item[1])+"|"+item[0]+"]] ('''"\
-                +str(item[6])+"''' days)\n"
+                +'[[Wikipedia:Good article nominations#'+item[j]+"|"+item[0]\
+                +"]] ('''"+str(item[6])+"''' days)\n"
     else:
-        text = '# [[Talk:'+item[0]+"|]] ('''"+str(item[6])+"''' days)\n"
+        text = '# [[Wikipedia:Good article nominations#'+item[j]+"|"+item[0]\
+                +"]] ('''"+str(item[6])+"''' days)\n"
     report.append(text)
 
 # Counts up all the noms, holds, reviews, and 2nd opinions in each section and
@@ -345,7 +377,7 @@ for item in entry:
         elif any(item[0] in i for i in scnOp):
             nomsBySection[item[2]][1]+=1
     elif item[3] in subSectDict:
-        index=subSectDict[item[3]]
+        index=4
         nomsBySection[item[2]][index][item[3]][0]+=1
         if any(item[0] in i for i in onHld):
             nomsBySection[item[2]][index][item[3]][1]+=1
@@ -357,15 +389,24 @@ for item in entry:
         print(item)
         raise TypeError('Nominations must have a section or subsection')
 
-# Creates the summary report by iterating over the nomsBySection data structure        
+# Creates the summary report by iterating over the nomsBySection data structure
+sectionNameList=[]
+subsectionDict={}
+for key in nomsBySection:
+    sectionNameList.append(key)
+    subsectionList=[]
+    for subkey in nomsBySection[key][4]:
+        subsectionList.append(subkey)
+    if subsectionList != []:
+        subsectionList.sort()
+    subsectionDict[key]=subsectionList
 summary = []
-for section in nomsBySection:
+sectionNameList.sort()
+for section in sectionNameList:
     summary.append(updateSummary(section))
-    if len(nomsBySection[section]) > 4:
-        for i in range(len(nomsBySection[section])-4):
-            j = i+4
-            for subsection in nomsBySection[section][j]:
-                summary.append(updateSummary(section,subsection))
+    if subsectionDict[section] != [] :
+        for subsection in subsectionDict[section]:
+            summary.append(updateSummary(section,subsection))
 
 #Get unchanged portions of the page and organize the page
 passed = 0
@@ -376,8 +417,14 @@ x=page.text.split('\n')
 for line in x:
     if 'The above sections updated at' in line:
         passed=1
-    elif passed==1:
+    elif passed==1 and '= Summary =' not in line:
         toPrint.append(line+'\n')
+    elif '= Summary =' in line:
+        toPrint.append('<!-- The following sections updated at '\
+                       +wikiTimeStamp()+' by'+' WugBot -->\n')
+        toPrint.append('== Summary==\n')
+        toPrint+=summary
+        passed=2
     else:
         continue
 
