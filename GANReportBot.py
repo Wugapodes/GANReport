@@ -97,6 +97,21 @@ def wikiTimeStamp():
     +monthConvert(datetime.datetime.utcnow().month)+' '\
     +str(datetime.datetime.utcnow().year)+' (UTC)'
     return(stamp)
+    
+def updateSummary(section,subsection=False):
+    global nomsBySection
+    global subSectDict
+    if subsection:
+        index=subSectDict[subsection]
+        n = nomsBySection[section][index][subsection][0]
+        text = ":'''[[Wikipedia:Good article nominations#"+subsection+"|" \
+               +subsection+"]]''' ("+n+")\n"
+    else:
+        n = nomsBySection[section]
+        text = "'''[[Wikipedia:Good article nominations#"+section+"|" \
+               +section+"]]''' ("+n+")\n"
+    return(text)
+     
 
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
@@ -341,6 +356,15 @@ for item in entry:
     else:
         print(item)
         raise TypeError('Nominations must have a section or subsection')
+        
+summary = []
+for section in nomsBySection:
+    summary.append(updateSummary(section))
+    if len(nomsBySection[section]) > 4:
+        for i in range(len(nomsBySection[section])-4):
+            j = i+4
+            for subsection in nomsBySection[section][j]:
+                summary.append(updateSummary(section,subsection))
 
 #Get unchanged portions of the page and organize the page
 passed = 0
