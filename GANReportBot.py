@@ -124,35 +124,55 @@ onHld   = []
 waitg   = []
 scnOp   = []
 toPrint = []
+
 nomsBySection = {}
 subSectDict = {}
 
-# Find the Nomination entries and then sort them into on hold, 
-#     2nd opinion, or on revivew
-#   DATA FORMAT 
-#       entryData[0] = Title of the nominated article
-#       entryData[1] = Nomination number
-#       entryData[2] = Timestamp
-#       entryData[3] = section name
-#       entryData[4] = subsection name
-#       entryData[5] = The line following (not present in nomin or entry)
+'''
+FOR LOOP DOCUMENTATION
+
+The following for loop goes line by line through the nomination page. It checks 
+to see: 
+    If the line is a section header:
+        If the line is a subsection header:
+            then it updates the subsection dictionaries
+        If it is not a subsection (i.e. only a section):
+            then it updates the section dictionary
+    Else if it is a GANEntry template:
+        stores the regex output in matches
+    Else if it is none of the above nor a GAReview it skips the line
+It then checks (see note below):
+    If it is a GAReview template:
+        then it sorts the associated nomination
+    Else it updates the entry data and adds it to entry and nomin
+
+NOTE: This runs backwards. GAReview templates only come /after/ a nomination 
+so a nomination line will be added to entry and nomin and the next line, if it 
+is not being worked on (ie no GAReview template) then it will overwrite the 
+previous nomination data. But if there is a GAReview template it is /not/ 
+overwritten and is used to sort the previous nomination into the proper place 
+and removes it from nomin (because it's on review)
+'''
 for line in fullText:
-    if '==' in line:
-        if '===' in line:
+    if '==' in line: #Checks to see if section
+        if '===' in line: #Checks to see if subsection
             subSectName=re.search(sctRegex,line).group(1)
+            # array nums represent: 
+            # [# of noms, # on hold, # on rev, # 2nd opinion]
             nomsBySection[sectName].append({subSectName:[0,0,0,0]})
+            # keeps track of the indices of subsections in the data structure
             subSectDict[subSectName]=len(nomsBySection[sectName])-1
         else:
             result=re.search(sctRegex,line)
             sectName=result.group(1)
+            # array nums represent: 
+            # [# of noms, # on hold, # on rev, # 2nd opinion]
             nomsBySection[sectName]=[0,0,0,0]
             subSectName=None
         continue
     elif 'GANentry' in line:
         matches=entRegex.search(line)
-    elif 'GAReview' in line:
-        pass
-    else:
+    elif 'GAReview' not in line:
         continue
     if 'GAReview' in line:
         nomin.pop()
@@ -165,14 +185,24 @@ for line in fullText:
             onRev.append(entryData)
     else:
         entryData=[
-                    matches.group(1),
-                    matches.group(2),
-                    sectName,
-                    subSectName,
-                    matches.group(3)
+                    matches.group(1), # Title of the nominated article
+                    matches.group(2), # Nomination number
+                    sectName,         # Section name
+                    subSectName,      # Subsection name
+                    matches.group(3)  # Timestamp
                   ]
         entry.append(entryData)
         nomin.append(entryData)
+#########################################################################
+#   DATA FORMAT FOR ITEMS IN ARRAYS PRODUCED ABOVE
+#   (entry,nomin,onHld,onRev,scnOp)
+#       entryData[0] = Title of the nominated article
+#       entryData[1] = Nomination number
+#       entryData[2] = Timestamp
+#       entryData[3] = section name
+#       entryData[4] = subsection name
+#       entryData[5] = The line following (not present in nomin or entry)
+#########################################################################
 
 #Get the date
 today = date.today()
