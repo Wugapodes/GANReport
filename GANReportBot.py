@@ -264,7 +264,7 @@ oThirty=[]
 for item in entry:
     if int(item[6]) >= 30:
         oThirty.append(item)
-oThirty=sortByKey(oThirty,6)
+oThirty=sortByKey(oThirty,7)
 
 #Get the nominations ON HOLD 7 days or longer
 onHld=dateActions(onHld,5)
@@ -272,7 +272,7 @@ oldOnHold=[]
 for item in onHld:
     if int(item[6]) >= 7:
         oldOnHold.append(item)
-oldOnHold=sortByKey(oldOnHold,6)
+oldOnHold=sortByKey(oldOnHold,7)
 
 #Get the nominations ON REVIEW for 7 days or longer
 onRev=dateActions(onRev,5)
@@ -280,7 +280,7 @@ oldOnRev=[]
 for item in onRev:
     if int(item[6]) >= 7:
         oldOnRev.append(item)
-oldOnRev=sortByKey(oldOnRev,6)
+oldOnRev=sortByKey(oldOnRev,7)
 
 #Get the nominations ON SECOND OPINION for 7 days or longer
 scnOp=dateActions(scnOp,5)
@@ -288,7 +288,7 @@ oldScnOp=[]
 for item in scnOp:
     if int(item[6]) >= 7:
         oldScnOp.append(item)
-oldScnOp=sortByKey(oldScnOp,6)
+oldScnOp=sortByKey(oldScnOp,7)
 
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 
