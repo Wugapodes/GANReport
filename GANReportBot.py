@@ -249,7 +249,7 @@ ohld = len(onHld)
 orev = len(onRev)
 scnd = len(scnOp)
 
-rIndex = len(onHld[0])-1
+rIndex = 7
 
 #Get all unreviewed nominations older than 30 days
 oldestnoms = nomin
