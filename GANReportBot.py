@@ -118,7 +118,7 @@ def updateSummary(section,subsection=False):
         text = "'''[[Wikipedia:Good article nominations#"+section+"|" \
                +section+"]]''' ("+n+")"
     if int(h)+int(r)+int(s)>0:
-        text+=": \n"
+        text+=": "
     else:
         text+="\n"
     if int(h) > 0:
