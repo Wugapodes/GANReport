@@ -119,7 +119,7 @@ def updateSummary(section,subsection=False):
                +section+"]]''' ("+n+")"
             
         if int(h)>0 or int(r)>0 or int(s)>0:
-            text+=": "
+            text+=": \n"
         else:
             text+="\n"
     if int(h) > 0:
