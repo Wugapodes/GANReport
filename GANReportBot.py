@@ -329,7 +329,7 @@ report = ['{{/top}}\n\n',
           ":''List of the oldest ten nominations that have had no activity" \
           +"(placed on hold, under review or requesting a 2nd opinion)''\n",
     ]
-report = appendUpdates(report,topTen,index=5,rev=False)
+report = appendUpdates(report,topTen,index=6,rev=False)
 report+= ['\n',
           '== Backlog report ==\n',]
 
@@ -369,18 +369,18 @@ for item in oThirty:
     if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] [[Wikipedia:Good '\
                +'article nominations#'+item[j]+"|"+item[0]+"]] ('''"\
-               +str(item[6])+"''' days)\n"
+               +str(item[rIndex])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] [[Wikipedia:Good '\
                +'article nominations#'+item[j]+"|"+item[0]+"]] ('''"\
-               +str(item[6])+"''' days)\n"
+               +str(item[rIndex])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
                 +'[[Wikipedia:Good article nominations#'+item[j]+"|"+item[0]\
-                +"]] ('''"+str(item[6])+"''' days)\n"
+                +"]] ('''"+str(item[rIndex])+"''' days)\n"
     else:
         text = '# [[Wikipedia:Good article nominations#'+item[j]+"|"+item[0]\
-                +"]] ('''"+str(item[6])+"''' days)\n"
+                +"]] ('''"+str(item[rIndex])+"''' days)\n"
     report.append(text)
 
 # Malformed Noms
