@@ -145,8 +145,9 @@ fullText=fullText.split('\n')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+).*?(\d\d\:\d\d, \d+ .*? \d\d\d\d)'\
-        +r' \(UTC\)'
+        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)'\
+        +r'(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?'\
+        +r'(?:\}\} (.*?) )?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
 sctRegex = re.compile(r'==+ (.*?) (==+)')
 ##Finds the Wikipedia UTC Timestamp
@@ -158,10 +159,12 @@ onRev   = []
 onHld   = []
 waitg   = []
 scnOp   = []
+badNoms = []
 toPrint = []
 
 nomsBySection = {}
 subSectDict = {}
+nomsByNominator = {}
 
 '''
 FOR LOOP DOCUMENTATION
@@ -207,6 +210,15 @@ for line in fullText:
         continue
     elif 'GANentry' in line:
         matches=entRegex.search(line)
+        if matches.group(3) != None:
+            username = matches.group(3)
+        elif matches.group(3) == None and matches.group(4) != None:
+            username = matches.group(4)
+        else:
+            badNoms.append([matches.group(1),subSectName])
+            username = 'Unknown'
+        if username not in nomsByNominator:
+            nomsByNominator[username]=[]
     elif 'GAReview' not in line:
         continue
     if 'GAReview' in line:
@@ -224,10 +236,16 @@ for line in fullText:
                     matches.group(2), # Nomination number
                     sectName,         # Section name
                     subSectName,      # Subsection name
-                    matches.group(3)  # Timestamp
+                    matches.group(5), # Timestamp
+                    username          # Nominator's name
                   ]
         entry.append(entryData)
         nomin.append(entryData)
+        if subSectName != None:
+            sec = subSectName
+        else:
+            sec = sectName
+        nomsByNominator[username].append([matches.group(1),sec])
 #########################################################################
 #   DATA FORMAT FOR ITEMS IN ARRAYS PRODUCED ABOVE
 #   (entry,nomin,onHld,onRev,scnOp)
@@ -236,7 +254,8 @@ for line in fullText:
 #       entryData[2] = Section name
 #       entryData[3] = Subsection name
 #       entryData[4] = Timestamp
-#       entryData[5] = The line following (not present in nomin or entry)
+#       entryData[5] = Nominator's name
+#       entryData[6] = The line following (not present in nomin or entry)
 #########################################################################
 
 #Get the date
@@ -249,7 +268,7 @@ ohld = len(onHld)
 orev = len(onRev)
 scnd = len(scnOp)
 
-rIndex = 7
+rIndex = 8 # index number for appended days since action
 
 #Get all unreviewed nominations older than 30 days
 oldestnoms = nomin
@@ -263,12 +282,12 @@ while len(topTen) < 10:
 entry = dateActions(entry,4)
 oThirty=[]
 for item in entry:
-    if int(item[6]) >= 30:
+    if int(item[7]) >= 30:
         oThirty.append(item)
-oThirty=sortByKey(oThirty,6)
+oThirty=sortByKey(oThirty,7)
 
 #Get the nominations ON HOLD 7 days or longer
-onHld=dateActions(onHld,5)
+onHld=dateActions(onHld,rIndex-2)
 oldOnHold=[]
 for item in onHld:
     if int(item[rIndex]) >= 7:
@@ -276,7 +295,7 @@ for item in onHld:
 oldOnHold=sortByKey(oldOnHold,rIndex)
 
 #Get the nominations ON REVIEW for 7 days or longer
-onRev=dateActions(onRev,5)
+onRev=dateActions(onRev,rIndex-2)
 oldOnRev=[]
 for item in onRev:
     if int(item[rIndex]) >= 7:
@@ -284,7 +303,7 @@ for item in onRev:
 oldOnRev=sortByKey(oldOnRev,rIndex)
 
 #Get the nominations ON SECOND OPINION for 7 days or longer
-scnOp=dateActions(scnOp,5)
+scnOp=dateActions(scnOp,rIndex-2)
 oldScnOp=[]
 for item in scnOp:
     if int(item[rIndex]) >= 7:
@@ -365,6 +384,49 @@ for item in oThirty:
                 +"]] ('''"+str(item[6])+"''' days)\n"
     report.append(text)
 
+# Malformed Noms
+report.append('=== Malformed nominations ===\n')
+if len(badNoms) < 1:
+    report.append('None\n')
+else:
+    if len(badNoms) > 1:
+        report.append(":''There are currently "+str(len(badNoms))\
+                      +" malformed nominations''\n")
+    elif len(badNoms) == 1:
+        report.append(":''There is currently 1 malformed nomination''\n")
+    for item in badNoms:
+        text= '# [[Wikipedia:Good article nominations#'+item[1]+"|"\
+              +item[0]+"]]\n"
+        report.append(text)
+
+# Counts and outputs nominators with multiple nominations
+report.append('=== Nominators with multiple nominations ===\n')
+multipleNomsOut = []
+mnOutput = []
+for user in nomsByNominator:
+    if len(nomsByNominator[user]) > 1:
+        multipleNomsOut.append([
+            user,
+            len(nomsByNominator[user]),
+            nomsByNominator[user]
+        ])
+        line = ';'+user+' \('+str(len(nomsByNominator[user]))+'\)\n'
+nomsSort = sortByKey(multipleNomsOut,1)
+for item in nomsSort:
+    line = ';'+item[0]+' \('+str(item[1])+'\)'
+    mnOutput.append(line)
+    line = ':'
+    counter=0
+    for mnNom in item[2]:
+        if counter != 0:
+            line+=', '
+        line += '\[\[Wikipedia:Good article nominations#'+mnNom[1]+'|'\
+                +mnNom[0]+'\]\]'
+        counter+=1
+    line+='\n'
+    mnOutput.append(line)
+report += mnOutput
+        
 # Counts up all the noms, holds, reviews, and 2nd opinions in each section and
 #   iterates the counter in the nomsBySection datastructure
 for item in entry:
@@ -408,10 +470,12 @@ for section in sectionNameList:
         for subsection in subsectionDict[section]:
             summary.append(updateSummary(section,subsection))
 
+report.append('== Summary ==\n')
+report+=summary
+            
 #Get unchanged portions of the page and organize the page
-passed = 0
-toPrint+=report
-toPrint.append('<!-- The above sections updated at '+wikiTimeStamp()+' by' \
+toPrint=report
+toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
     +' WugBot -->\n')
 x=page.text.split('\n')
 for line in x:
