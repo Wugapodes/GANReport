@@ -406,7 +406,7 @@ for user in nomsByNominator:
         line = ';'+user+' ('+str(len(nomsByNominator[user]))+')\n'
 nomsSort = sortByKey(multipleNomsOut,1)
 for item in nomsSort:
-    line = ';'+item[0]+' \('+str(item[1])+'\)'
+    line = ';'+item[0]+' ('+str(item[1])+')'
     mnOutput.append(line)
     line = ':'
     counter=0
