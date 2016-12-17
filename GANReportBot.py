@@ -5,6 +5,28 @@ import re
 from datetime import date
 import datetime
 
+'''
+Copyright (c) 2016 Wugpodes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of 
+this software and associated documentation files (the "Software"), to deal in 
+the Software without restriction, including without limitation the rights to 
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+of the Software, and to permit persons to whom the Software is furnished to do 
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all 
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+THE SOFTWARE.
+'''
+
 ########
 # Changing this to 1 makes your changes live on the report page, do not set to
 # live mode unless you have been approved for bot usage. Do not merge commits 
@@ -60,8 +82,8 @@ def appendUpdates(toprint,updates,index=3,rev=True):
             i = 3
         else:
             i = 2
-        text = '# [[Wikipedia:Good article nominations#'+item[i]+"|" \
-               +item[0]+"]] ('''"+str(item[index])+"''' days)\n"
+        text = '# '+sectionLink(item[i,item[0])+" ('''"\
+                +str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
 
@@ -108,15 +130,13 @@ def updateSummary(section,subsection=False):
         h = str(nomsBySection[section][i][subsection][1])
         r = str(nomsBySection[section][i][subsection][2])
         s = str(nomsBySection[section][i][subsection][3])
-        text = ":'''[[Wikipedia:Good article nominations#"+subsection+"|" \
-               +subsection+"]]''' ("+n+")"
+        text = ":'''"+sectionLink(subsection,subsection+"''' ("+n+")"
     else:
         n = str(nomsBySection[section][0])
         h = str(nomsBySection[section][1])
         r = str(nomsBySection[section][2])
         s = str(nomsBySection[section][3])
-        text = "'''[[Wikipedia:Good article nominations#"+section+"|" \
-               +section+"]]''' ("+n+")"
+        text = "'''"+sectionLink(section,section)+"''' ("+n+")"
         if section=='Miscellaneous':
             text+='\n'
     if int(h)+int(r)+int(s)>0:
@@ -138,6 +158,10 @@ def updateSummary(section,subsection=False):
     if int(s) > 0:
         text += '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
                 +' x '+s+'\n'
+    return(text)
+    
+def sectionLink(section,title):
+    text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
      
 site = pywikibot.Site('en', 'wikipedia')
@@ -313,6 +337,7 @@ for item in scnOp:
         oldScnOp.append(item)
 oldScnOp=sortByKey(oldScnOp,rIndex)
 
+#Load report page (must be here because backlog report requires it be loaded)
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 
 #Make Backlog report
@@ -327,7 +352,11 @@ curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
 backlogReport.insert(0,curEntry)
 oldLine=backlogReport.pop()
 
-#Make the Page
+#################
+# Make the Page
+#################
+
+# Write Oldest nominations
 report = ['{{/top}}\n\n',
           '== Oldest nominations ==\n',
           ":''List of the oldest ten nominations that have had no activity" \
@@ -336,22 +365,24 @@ report = ['{{/top}}\n\n',
 report = appendUpdates(report,topTen,index=6,rev=False)
 report+= ['\n',
           '== Backlog report ==\n',]
-
+# Write backlog report
 for item in backlogReport:
     report.append(item)
-    
-report+= [":''Previous daily backlogs can be viewed at the \
-          [[/Backlog archive|backlog archive]].''\n\n",
-          '== Exceptions report ==\n',
+report.append(":''Previous daily backlogs can be viewed at the" \
+              +"[[/Backlog archive|backlog archive]].''\n\n")
+# Write the exceptions report
+#   Write reviews on hold for over 7 days       
+report+= ['== Exceptions report ==\n',
           '=== Holds over 7 days old ===\n']
 report=appendUpdates(report,oldOnHold,rIndex)
-report+=[
-        '\n',
+# Write nominations marked on review for over 7 days
+report+=['\n',
         '=== Old reviews ===\n',
         ":''Nominations that have been marked under review for 7 days or "\
         +"longer.''\n"
     ]
 report=appendUpdates(report,oldOnRev,rIndex)
+# Write requests for second opinion older than 7 days
 report+=[
     '\n',
     '=== Old requests for 2nd opinion ===\n',
@@ -359,6 +390,7 @@ report+=[
     +"days or longer.''\n"
 ]
 report=appendUpdates(report,oldScnOp,rIndex)
+#Write all nominations older than one month
 report+=[
     '\n',
     '=== Old nominations ===\n',
@@ -366,25 +398,26 @@ report+=[
     +"other activity.''\n"
 ]
 for item in oThirty:
-    if item[4] != None:
-        j = 3
-    else:
-        j = 2
+    if item[4] != None: # If there is a subsection
+        j = 3           #   use it
+    else:               # otherwise
+        j = 2           #   use section name
+    # Add icons if nomination is on hold, review, etc
     if any(item[0] in i for i in onHld):
-        text = '# [[Image:Symbol wait.svg|15px|On Hold]] [[Wikipedia:Good '\
-               +'article nominations#'+item[j]+"|"+item[0]+"]] ('''"\
-               +str(item[rIndex])+"''' days)\n"
+        text = '# [[Image:Symbol wait.svg|15px|On Hold]] '\
+                +sectionLink(item[j],item[0])+" ('''"\
+                +str(item[rIndex])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
-        text = '# [[Image:Searchtool.svg|15px|Under Review]] [[Wikipedia:Good '\
-               +'article nominations#'+item[j]+"|"+item[0]+"]] ('''"\
-               +str(item[rIndex])+"''' days)\n"
+        text = '# [[Image:Searchtool.svg|15px|Under Review]] '\
+                +sectionLink(item[j],item[0])+" ('''"\
+                +str(item[rIndex])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
-                +'[[Wikipedia:Good article nominations#'+item[j]+"|"+item[0]\
-                +"]] ('''"+str(item[rIndex])+"''' days)\n"
+                +sectionLink(item[j],item[0])+" ('''"\
+                +str(item[rIndex])+"''' days)\n"
     else:
-        text = '# [[Wikipedia:Good article nominations#'+item[j]+"|"+item[0]\
-                +"]] ('''"+str(item[rIndex-1])+"''' days)\n"
+        text = '# '+sectionLink(item[j],item[0])\+" ('''"\
+                +str(item[rIndex-1])+"''' days)\n"
     report.append(text)
 
 # Malformed Noms
@@ -398,8 +431,7 @@ else:
     elif len(badNoms) == 1:
         report.append(":''There is currently 1 malformed nomination''\n")
     for item in badNoms:
-        text= '# [[Wikipedia:Good article nominations#'+item[1]+"|"\
-              +item[0]+"]]\n"
+        text= '# '+sectionLink(item[1],item[0])+"\n"
         report.append(text)
 
 # Counts and outputs nominators with multiple nominations
@@ -422,8 +454,7 @@ for item in nomsSort:
     for mnNom in item[2]:
         if counter != 0:
             line+=', '
-        line += '[[Wikipedia:Good article nominations#'+mnNom[1]+'|'\
-                 +mnNom[0]+']]'
+        line += sectionLink(mnNom[1],mnNom[0])
         counter+=1
     line+='\n'
     mnOutput.append(line)
@@ -471,12 +502,13 @@ for section in sectionNameList:
     if subsectionDict[section] != [] :
         for subsection in subsectionDict[section]:
             summary.append(updateSummary(section,subsection))
-
+# Writes the summary report
 report.append('== Summary ==\n')
 report+=summary
             
-#Get unchanged portions of the page and organize the page
+# A relic of the old way, in memoriam WugBot-v0.0
 toPrint=report
+# Sign it
 toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
     +' WugBot-v1.0 -->\n')
 
