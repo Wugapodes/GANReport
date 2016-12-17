@@ -117,6 +117,8 @@ def updateSummary(section,subsection=False):
         s = str(nomsBySection[section][3])
         text = "'''[[Wikipedia:Good article nominations#"+section+"|" \
                +section+"]]''' ("+n+")"
+        if section=='Miscellaneous':
+            text+='\n'
     if int(h)+int(r)+int(s)>0:
         text+=": "
     else:
@@ -134,7 +136,8 @@ def updateSummary(section,subsection=False):
         else:
             text+='\n'
     if int(s) > 0:
-        text += '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x '+s+'\n'
+        text += '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
+                +' x '+s+'\n'
     return(text)
      
 site = pywikibot.Site('en', 'wikipedia')
@@ -145,8 +148,9 @@ fullText=fullText.split('\n')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?(?:\}\} (.*?) )?'\
-        +r'(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)'\
+        +r'(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?'\
+        +r'(?:\}\} (.*?) )?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
 sctRegex = re.compile(r'==+ (.*?) (==+)')
 ##Finds the Wikipedia UTC Timestamp
@@ -389,11 +393,13 @@ if len(badNoms) < 1:
     report.append('None\n')
 else:
     if len(badNoms) > 1:
-        report.append(":''There are currently "+str(len(badNoms))+" malformed nominations''\n")
+        report.append(":''There are currently "+str(len(badNoms))\
+                      +" malformed nominations''\n")
     elif len(badNoms) == 1:
         report.append(":''There is currently 1 malformed nomination''\n")
     for item in badNoms:
-        text= '# [[Wikipedia:Good article nominations#'+item[1]+"|"+item[0]+"]]\n"
+        text= '# [[Wikipedia:Good article nominations#'+item[1]+"|"\
+              +item[0]+"]]\n"
         report.append(text)
 
 # Counts and outputs nominators with multiple nominations
@@ -402,7 +408,10 @@ multipleNomsOut = []
 mnOutput = []
 for user in nomsByNominator:
     if len(nomsByNominator[user]) > 1:
-        multipleNomsOut.append([user,len(nomsByNominator[user]),nomsByNominator[user]])
+        multipleNomsOut.append([
+            user,
+            len(nomsByNominator[user]),nomsByNominator[user]
+        ])
         line = ';'+user+' ('+str(len(nomsByNominator[user]))+')\n'
 nomsSort = sortByKey(multipleNomsOut,1)
 for item in nomsSort:
@@ -413,7 +422,8 @@ for item in nomsSort:
     for mnNom in item[2]:
         if counter != 0:
             line+=', '
-        line += '[[Wikipedia:Good article nominations#'+mnNom[1]+'|'+mnNom[0]+']]'
+        line += '[[Wikipedia:Good article nominations#'+mnNom[1]+'|'\
+                 +mnNom[0]+']]'
         counter+=1
     line+='\n'
     mnOutput.append(line)
@@ -468,7 +478,7 @@ report+=summary
 #Get unchanged portions of the page and organize the page
 toPrint=report
 toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
-    +' WugBot -->\n')
+    +' WugBot-v1.0 -->\n')
 
 # Determine if the bot should write to a live page or the test page. Defaults to 
 #     test page. Value of -1 tests backlog update (not standard because the file
