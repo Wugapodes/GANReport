@@ -5,6 +5,14 @@ import re
 from datetime import date
 import datetime
 
+########
+# Changing this to 1 makes your changes live on the report page, do not set to
+# live mode unless you have been approved for bot usage. Do not merge commits 
+# where this is not default to 0
+########
+live = 0
+########
+
 '''
 Copyright (c) 2016 Wugpodes
 
@@ -26,14 +34,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 THE SOFTWARE.
 '''
-
-########
-# Changing this to 1 makes your changes live on the report page, do not set to
-# live mode unless you have been approved for bot usage. Do not merge commits 
-# where this is not default to 0
-########
-live = 0
-########
 
 def monthConvert(name):
     '''
@@ -130,7 +130,7 @@ def updateSummary(section,subsection=False):
         h = str(nomsBySection[section][i][subsection][1])
         r = str(nomsBySection[section][i][subsection][2])
         s = str(nomsBySection[section][i][subsection][3])
-        text = ":'''"+sectionLink(subsection,subsection+"''' ("+n+")"
+        text = ":'''"+sectionLink(subsection,subsection)+"''' ("+n+")"
     else:
         n = str(nomsBySection[section][0])
         h = str(nomsBySection[section][1])
@@ -416,7 +416,7 @@ for item in oThirty:
                 +sectionLink(item[j],item[0])+" ('''"\
                 +str(item[rIndex])+"''' days)\n"
     else:
-        text = '# '+sectionLink(item[j],item[0])\+" ('''"\
+        text = '# '+sectionLink(item[j],item[0])+" ('''"\
                 +str(item[rIndex-1])+"''' days)\n"
     report.append(text)
 
@@ -527,8 +527,8 @@ else:
     page.text=''.join(toPrint)
     page.save('Testing expanded reporting')
     if live==-1:
-        page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/'\
-                                    +'Backlog archive')
+        page = pywikibot.Page(site,
+            'User:Wugapodes/GANReportBotTest/Backlog archive')
         testText=page.text
         page.text=testText
         page.save('Testing backlog report updating')
