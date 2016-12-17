@@ -145,9 +145,8 @@ fullText=fullText.split('\n')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)'\
-        +r'(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?'\
-        +r'(?:\}\} (.*?) )?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?(?:\}\} (.*?) )?'\
+        +r'(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
 sctRegex = re.compile(r'==+ (.*?) (==+)')
 ##Finds the Wikipedia UTC Timestamp
@@ -390,13 +389,11 @@ if len(badNoms) < 1:
     report.append('None\n')
 else:
     if len(badNoms) > 1:
-        report.append(":''There are currently "+str(len(badNoms))\
-                      +" malformed nominations''\n")
+        report.append(":''There are currently "+str(len(badNoms))+" malformed nominations''\n")
     elif len(badNoms) == 1:
         report.append(":''There is currently 1 malformed nomination''\n")
     for item in badNoms:
-        text= '# [[Wikipedia:Good article nominations#'+item[1]+"|"\
-              +item[0]+"]]\n"
+        text= '# [[Wikipedia:Good article nominations#'+item[1]+"|"+item[0]+"]]\n"
         report.append(text)
 
 # Counts and outputs nominators with multiple nominations
@@ -405,11 +402,7 @@ multipleNomsOut = []
 mnOutput = []
 for user in nomsByNominator:
     if len(nomsByNominator[user]) > 1:
-        multipleNomsOut.append([
-            user,
-            len(nomsByNominator[user]),
-            nomsByNominator[user]
-        ])
+        multipleNomsOut.append([user,len(nomsByNominator[user]),nomsByNominator[user]])
         line = ';'+user+' \('+str(len(nomsByNominator[user]))+'\)\n'
 nomsSort = sortByKey(multipleNomsOut,1)
 for item in nomsSort:
@@ -420,8 +413,7 @@ for item in nomsSort:
     for mnNom in item[2]:
         if counter != 0:
             line+=', '
-        line += '\[\[Wikipedia:Good article nominations#'+mnNom[1]+'|'\
-                +mnNom[0]+'\]\]'
+        line += '\[\[Wikipedia:Good article nominations#'+mnNom[1]+'|'+mnNom[0]+'\]\]'
         counter+=1
     line+='\n'
     mnOutput.append(line)
@@ -477,20 +469,6 @@ report+=summary
 toPrint=report
 toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
     +' WugBot -->\n')
-x=page.text.split('\n')
-for line in x:
-    if 'The above sections updated at' in line:
-        passed=1
-    elif passed==1 and '= Summary =' not in line:
-        toPrint.append(line+'\n')
-    elif '= Summary =' in line:
-        toPrint.append('<!-- The following sections updated at '\
-                       +wikiTimeStamp()+' by'+' WugBot -->\n')
-        toPrint.append('== Summary==\n')
-        toPrint+=summary
-        passed=2
-    else:
-        continue
 
 # Determine if the bot should write to a live page or the test page. Defaults to 
 #     test page. Value of -1 tests backlog update (not standard because the file
