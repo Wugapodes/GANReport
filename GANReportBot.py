@@ -380,7 +380,7 @@ for item in oThirty:
                 +"]] ('''"+str(item[rIndex])+"''' days)\n"
     else:
         text = '# [[Wikipedia:Good article nominations#'+item[j]+"|"+item[0]\
-                +"]] ('''"+str(item[rIndex])+"''' days)\n"
+                +"]] ('''"+str(item[rIndex-1])+"''' days)\n"
     report.append(text)
 
 # Malformed Noms
