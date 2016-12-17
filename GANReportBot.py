@@ -82,7 +82,7 @@ def appendUpdates(toprint,updates,index=3,rev=True):
             i = 3
         else:
             i = 2
-        text = '# '+sectionLink(item[i,item[0])+" ('''"\
+        text = '# '+sectionLink(item[i],item[0])+" ('''"\
                 +str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
