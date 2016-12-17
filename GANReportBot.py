@@ -520,7 +520,6 @@ if live == 1:
     page.save('Updating exceptions report')
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
                                 +'Backlog archive')
-    page.text+='<br />\n'
     page.text+=oldLine
     page.save('Update of GAN report backlog')
 else:
