@@ -403,7 +403,7 @@ mnOutput = []
 for user in nomsByNominator:
     if len(nomsByNominator[user]) > 1:
         multipleNomsOut.append([user,len(nomsByNominator[user]),nomsByNominator[user]])
-        line = ';'+user+' \('+str(len(nomsByNominator[user]))+'\)\n'
+        line = ';'+user+' ('+str(len(nomsByNominator[user]))+')\n'
 nomsSort = sortByKey(multipleNomsOut,1)
 for item in nomsSort:
     line = ';'+item[0]+' \('+str(item[1])+'\)'
@@ -413,7 +413,7 @@ for item in nomsSort:
     for mnNom in item[2]:
         if counter != 0:
             line+=', '
-        line += '\[\[Wikipedia:Good article nominations#'+mnNom[1]+'|'+mnNom[0]+'\]\]'
+        line += '[[Wikipedia:Good article nominations#'+mnNom[1]+'|'+mnNom[0]+']]'
         counter+=1
     line+='\n'
     mnOutput.append(line)
