@@ -585,7 +585,7 @@ else:
     page.text=''.join(toPrint)
     if live == 2:
     	message='Daily test of beta version. Output of v'+version
-    else
+    else:
     	message='Testing expanded reporting'
     page.save(message)
     if live==-1:
