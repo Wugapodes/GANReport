@@ -585,7 +585,9 @@ else:
     page.text=''.join(toPrint)
     if live == 2:
     	message='Daily test of beta version. Output of v'+version
-    page.save('Testing expanded reporting')
+    else
+    	message='Testing expanded reporting'
+    page.save(message)
     if live==-1:
         page = pywikibot.Page(site,
             'User:Wugapodes/GANReportBotTest/Backlog archive')
