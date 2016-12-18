@@ -163,6 +163,15 @@ def updateSummary(section,subsection=False):
 def sectionLink(section,title):
     text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
+    
+def printData(data, index):
+    rText=''
+    for i in range(len(data)):
+        dataPoint = str(data[i][index])
+        if i < 29:
+            dataPoint+=', '
+        rText+=dataPoint
+    return(rText)
      
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
@@ -176,6 +185,9 @@ entRegex = re.compile(
         +r'(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?'\
         +r'(?:\}\} (.*?) )?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
+backlogRegex = re.compile(r'(\d+) (.*?) (\d\d\d\d).*?(\d+) nom.*? (\d+)'\
+                          +r'(?:(?:.*?On Hold.*?x (\d+))?'\
+                          +r'(?:.*?Under.*?x (\d+))?(?:.*?2nd.*?x (\d+))?)')
 sctRegex = re.compile(r'==+ (.*?) (==+)')
 ##Finds the Wikipedia UTC Timestamp
 datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
@@ -219,8 +231,8 @@ overwritten and is used to sort the previous nomination into the proper place
 and removes it from nomin (because it's on review)
 '''
 for line in fullText:
-    if '==' in line: #Checks to see if section
-        if '===' in line: #Checks to see if subsection
+    if '==' in line:
+        if '===' in line:
             subSectName=re.search(sctRegex,line).group(1)
             # array nums represent: 
             # [# of noms, # on hold, # on rev, # 2nd opinion]
@@ -339,6 +351,8 @@ oldScnOp=sortByKey(oldScnOp,rIndex)
 
 #Load report page (must be here because backlog report requires it be loaded)
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
+archive = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
+                              +'Backlog archive')
 
 #Make Backlog report
 backlogReport = []
@@ -351,6 +365,47 @@ curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
     + str(scnd)+'<br />'
 backlogReport.insert(0,curEntry)
 oldLine=backlogReport.pop()
+
+#Make Backlog Chart
+backlogEntry = archive.text.split('\n')
+backlogEntry.reverse()
+bklgData = backlogReport + backlogEntry[0:30-len(backlogReport)]
+dayData=[]
+i=0
+for day in bklgData:
+    dayMatch = backlogRegex.search(day)
+    dayData.append([])
+    for j in range(1,8):
+        dayData[i].append(dayMatch.group(j))
+    i+=1
+chartOutput='<div style="float: right;">\n{{Graph:Chart|width=600|height=200|'\
+             +'legend=Legend|type=line|xType=date|x='
+for i in range(len(dayData)):
+    dayStamp = ' '.join([dayData[i][0],dayData[i][1],dayData[i][2]])
+    if i < 29:
+        dayStamp+=', '
+    chartOutput+=dayStamp
+chartOutput+='|y1Title=Nominations Outstanding|y1='
+chartOutput+=printData(dayData,3)
+chartOutput+='|y2Title=Not Reviewed|y2='
+chartOutput+=printData(dayData,4)
+chartOutput+='}}\n'
+chartOutput += '{{Graph:Chart|width=600|height=200|legend=Legend|'\
+                +'type=stackedrect|xType=date|x='
+for i in range(len(dayData)):
+    dayStamp = ' '.join([dayData[i][0],dayData[i][1],dayData[i][2]])
+    if i < 29:
+        dayStamp+=', '
+    chartOutput+=dayStamp
+chartOutput+='|y1Title=Not Reviewed|y1='
+chartOutput+=printData(dayData,4)
+chartOutput+='|y2Title=On Hold|y2='
+chartOutput+=printData(dayData,5)
+chartOutput+='|y3Title=On Review|y3='
+chartOutput+=printData(dayData,6)
+chartOutput+='|y4Title=2nd Opinion|y4='
+chartOutput+=printData(dayData,5)
+chartOutput+='}}\n</div>\n'
 
 #################
 # Make the Page
@@ -365,6 +420,8 @@ report = ['{{/top}}\n\n',
 report = appendUpdates(report,topTen,index=6,rev=False)
 report+= ['\n',
           '== Backlog report ==\n',]
+#Write chart
+report.append(chartOutput)
 # Write backlog report
 for item in backlogReport:
     report.append(item)
