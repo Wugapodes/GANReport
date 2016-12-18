@@ -387,8 +387,6 @@ for i in range(len(dayData)):
     chartOutput+=dayStamp
 chartOutput+='|y1Title=Nominations Outstanding|y1='
 chartOutput+=printData(dayData,3)
-chartOutput+='|y2Title=Not Reviewed|y2='
-chartOutput+=printData(dayData,4)
 chartOutput+='}}\n'
 chartOutput += '{{Graph:Chart|width=600|height=200|legend=Legend|'\
                 +'type=stackedrect|xType=date|x='
@@ -397,13 +395,13 @@ for i in range(len(dayData)):
     if i < 29:
         dayStamp+=', '
     chartOutput+=dayStamp
-chartOutput+='|y1Title=Not Reviewed|y1='
+chartOutput+='|y1Title=Unreviewed|y1='
 chartOutput+=printData(dayData,4)
 chartOutput+='|y2Title=On Hold|y2='
 chartOutput+=printData(dayData,5)
 chartOutput+='|y3Title=On Review|y3='
 chartOutput+=printData(dayData,6)
-chartOutput+='|y4Title=2nd Opinion|y4='
+chartOutput+='|y4Title=Second Opinion|y4='
 chartOutput+=printData(dayData,5)
 chartOutput+='}}\n</div>\n'
 
