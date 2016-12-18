@@ -12,6 +12,9 @@ import datetime
 ########
 live = 0
 ########
+# Version Number
+########
+version = '1.0.0-b0.1.0'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -565,7 +568,7 @@ report+=summary
 toPrint=report
 # Sign it
 toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
-    +' WugBot-v1.0 -->\n')
+    +' WugBot v'+version+' -->\n')
 
 # Determine if the bot should write to a live page or the test page. Defaults to 
 #     test page. Value of -1 tests backlog update (not standard because the file
@@ -580,6 +583,8 @@ if live == 1:
 else:
     page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
     page.text=''.join(toPrint)
+    if live == 2:
+    	message='Daily test of beta version. Output of v'+version
     page.save('Testing expanded reporting')
     if live==-1:
         page = pywikibot.Page(site,
