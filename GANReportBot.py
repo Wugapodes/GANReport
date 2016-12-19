@@ -351,7 +351,7 @@ curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
     + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
     + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
     + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
-    + str(scnd)+'<br />'
+    + str(scnd)+'<br />\n'
 backlogReport.insert(0,curEntry)
 oldLine=backlogReport.pop()
 
