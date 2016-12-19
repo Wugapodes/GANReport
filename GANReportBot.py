@@ -12,6 +12,9 @@ import datetime
 ########
 live = 0
 ########
+# Version Number
+########
+version = '1.1.0'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -301,9 +304,9 @@ rIndex = 8 # index number for appended days since action
 oldestnoms = nomin
 oldestnoms = dateActions(oldestnoms,4)
 topTen = []
-oldestnoms=sortByKey(oldestnoms,5)
-while len(topTen) < 10:
-    topTen.append(oldestnoms.pop(0))
+oldestnoms=sortByKey(oldestnoms,6)
+for i in range(10)
+    topTen.append(oldestnoms[i])
 
 #Get all nominations older than 30 days
 entry = dateActions(entry,4)
@@ -510,14 +513,14 @@ report+=summary
 toPrint=report
 # Sign it
 toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
-    +' WugBot-v1.0 -->\n')
+    +' WugBot v'+version+' -->\n')
 
 # Determine if the bot should write to a live page or the test page. Defaults to 
 #     test page. Value of -1 tests backlog update (not standard because the file
 #     size is very big).
 if live == 1:
     page.text=''.join(toPrint)
-    page.save('Updating exceptions report')
+    page.save('Updating exceptions report, WugBot v'+version)
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
                                 +'Backlog archive')
     page.text+=oldLine
