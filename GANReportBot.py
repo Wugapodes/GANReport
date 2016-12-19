@@ -14,7 +14,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.0.0-b0.1.0'
+version = '10.0-b0.1.0'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -316,9 +316,9 @@ rIndex = 8 # index number for appended days since action
 oldestnoms = nomin
 oldestnoms = dateActions(oldestnoms,4)
 topTen = []
-oldestnoms=sortByKey(oldestnoms,5)
-while len(topTen) < 10:
-    topTen.append(oldestnoms.pop(0))
+oldestnoms=sortByKey(oldestnoms,6)
+for i in range(10):
+    topTen.append(oldestnoms[i])
 
 #Get all nominations older than 30 days
 entry = dateActions(entry,4)
@@ -365,7 +365,7 @@ curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
     + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
     + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
     + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
-    + str(scnd)+'<br />'
+    + str(scnd)+'<br />\n'
 backlogReport.insert(0,curEntry)
 oldLine=backlogReport.pop()
 
@@ -575,11 +575,11 @@ toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
 #     size is very big).
 if live == 1:
     page.text=''.join(toPrint)
-    page.save('Updating exceptions report')
+    page.save('Updating exceptions report, WugBot v'+version)
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
                                 +'Backlog archive')
     page.text+=oldLine
-    page.save('Update of GAN report backlog')
+    page.save('Update of GAN report backlog, WugBot v'+version)
 else:
     page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
     page.text=''.join(toPrint)
