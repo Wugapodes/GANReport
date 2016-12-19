@@ -305,7 +305,7 @@ oldestnoms = nomin
 oldestnoms = dateActions(oldestnoms,4)
 topTen = []
 oldestnoms=sortByKey(oldestnoms,6)
-for i in range(10)
+for i in range(10):
     topTen.append(oldestnoms[i])
 
 #Get all nominations older than 30 days
@@ -327,7 +327,7 @@ oldOnHold=sortByKey(oldOnHold,rIndex)
 #Get the nominations ON REVIEW for 7 days or longer
 onRev=dateActions(onRev,rIndex-2)
 oldOnRev=[]
-for item in onRev:
+for item in onRev:frange(
     if int(item[rIndex]) >= 7:
         oldOnRev.append(item)
 oldOnRev=sortByKey(oldOnRev,rIndex)
