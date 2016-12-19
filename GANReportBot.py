@@ -327,7 +327,7 @@ oldOnHold=sortByKey(oldOnHold,rIndex)
 #Get the nominations ON REVIEW for 7 days or longer
 onRev=dateActions(onRev,rIndex-2)
 oldOnRev=[]
-for item in onRev:frange(
+for item in onRev:
     if int(item[rIndex]) >= 7:
         oldOnRev.append(item)
 oldOnRev=sortByKey(oldOnRev,rIndex)
@@ -524,7 +524,7 @@ if live == 1:
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
                                 +'Backlog archive')
     page.text+=oldLine
-    page.save('Update of GAN report backlog')
+    page.save('Update of GAN report backlog, WugBot v'+version)
 else:
     page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
     page.text=''.join(toPrint)
