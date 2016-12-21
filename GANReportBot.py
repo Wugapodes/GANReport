@@ -14,7 +14,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '10.0-b0.1.0'
+version = '1.0.0-b0.1.1'
 
 '''
 Copyright (c) 2016 Wugpodes
