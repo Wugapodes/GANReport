@@ -388,7 +388,7 @@ for i in range(len(dayData)):
     if i < 29:
         dayStamp+=', '
     chartOutput+=dayStamp
-chartOutput+='|y1Title=Nominations Outstanding|y1='
+chartOutput+='|yAxisMin=0|y1Title=Nominations Outstanding|y1='
 chartOutput+=printData(dayData,3)
 chartOutput+='}}\n'
 chartOutput += '{{Graph:Chart|width=600|height=200|legend=Legend|'\
