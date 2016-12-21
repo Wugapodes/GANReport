@@ -14,7 +14,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.0.0-b0.1.1'
+version = '1.0.0-b0.1.2'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -171,7 +171,7 @@ def printData(data, index):
     rText=''
     for i in range(len(data)):
         dataPoint = str(data[i][index])
-        if i < 29:
+        if i < len(data)-1:
             dataPoint+=', '
         rText+=dataPoint
     return(rText)
@@ -387,6 +387,7 @@ for i in range(len(dayData)):
     dayStamp = ' '.join([dayData[i][0],dayData[i][1],dayData[i][2]])
     if i < len(dayData)-1:
         dayStamp+=', '
+        print(i)
     chartOutput+=dayStamp
 chartOutput+='|yAxisMin=0|y1Title=Nominations Outstanding|y1='
 chartOutput+=printData(dayData,3)
@@ -586,13 +587,13 @@ else:
     if live == 2:
     	message='Daily test of beta version. Output of v'+version
     else:
-    	message='Testing expanded reporting'
+    	message='Testing expanded reporting. Output of v'+version
     page.save(message)
     if live==-1:
         page = pywikibot.Page(site,
             'User:Wugapodes/GANReportBotTest/Backlog archive')
         testText=page.text
         page.text=testText
-        page.save('Testing backlog report updating')
+        page.save('Testing backlog report updating. Output of v'+version)
     
 print(wikiTimeStamp())
