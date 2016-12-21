@@ -372,7 +372,7 @@ oldLine=backlogReport.pop()
 #Make Backlog Chart
 backlogEntry = archive.text.split('\n')
 backlogEntry.reverse()
-bklgData = backlogReport + backlogEntry[0:30-len(backlogReport)]
+bklgData = backlogReport + backlogEntry[0:90-len(backlogReport)]
 dayData=[]
 i=0
 for day in bklgData:
@@ -385,7 +385,7 @@ chartOutput='<div style="float: right;">\n{{Graph:Chart|width=600|height=200|'\
              +'legend=Legend|type=line|xType=date|x='
 for i in range(len(dayData)):
     dayStamp = ' '.join([dayData[i][0],dayData[i][1],dayData[i][2]])
-    if i < 29:
+    if i < len(dayData)-1:
         dayStamp+=', '
     chartOutput+=dayStamp
 chartOutput+='|yAxisMin=0|y1Title=Nominations Outstanding|y1='
@@ -395,7 +395,7 @@ chartOutput += '{{Graph:Chart|width=600|height=200|legend=Legend|'\
                 +'type=stackedrect|xType=date|x='
 for i in range(len(dayData)):
     dayStamp = ' '.join([dayData[i][0],dayData[i][1],dayData[i][2]])
-    if i < 29:
+    if i < len(dayData)-1:
         dayStamp+=', '
     chartOutput+=dayStamp
 chartOutput+='|y1Title=Unreviewed|y1='
