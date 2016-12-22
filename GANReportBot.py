@@ -14,7 +14,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.1.0'
+version = '1.1.1'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -409,15 +409,15 @@ for item in oThirty:
     if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] '\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] '\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     else:
         text = '# '+sectionLink(item[j],item[0])+" ('''"\
                 +str(item[rIndex-1])+"''' days)\n"
