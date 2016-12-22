@@ -14,7 +14,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.1.1'
+version = '1.2.0'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -362,7 +362,7 @@ oldLine=backlogReport.pop()
 # Write Oldest nominations
 report = ['{{/top}}\n\n',
           '== Oldest nominations ==\n',
-          ":''List of the oldest ten nominations that have had no activity" \
+          ":''List of the oldest ten nominations that have had no activity " \
           +"(placed on hold, under review or requesting a 2nd opinion)''\n",
     ]
 report = appendUpdates(report,topTen,index=6,rev=False)
@@ -442,7 +442,7 @@ report.append('=== Nominators with multiple nominations ===\n')
 multipleNomsOut = []
 mnOutput = []
 for user in nomsByNominator:
-    if len(nomsByNominator[user]) > 1:
+    if len(nomsByNominator[user]) > 2:
         multipleNomsOut.append([
             user,
             len(nomsByNominator[user]),nomsByNominator[user]
