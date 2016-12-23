@@ -14,8 +14,8 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.0.0-b0.1.2'
-
+version = '1.0.0-b0.1.3'
+########
 '''
 Copyright (c) 2016 Wugpodes
 
@@ -416,7 +416,7 @@ chartOutput+='}}\n</div>\n'
 # Write Oldest nominations
 report = ['{{/top}}\n\n',
           '== Oldest nominations ==\n',
-          ":''List of the oldest ten nominations that have had no activity" \
+          ":''List of the oldest ten nominations that have had no activity " \
           +"(placed on hold, under review or requesting a 2nd opinion)''\n",
     ]
 report = appendUpdates(report,topTen,index=6,rev=False)
@@ -465,15 +465,15 @@ for item in oThirty:
     if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] '\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] '\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     else:
         text = '# '+sectionLink(item[j],item[0])+" ('''"\
                 +str(item[rIndex-1])+"''' days)\n"
@@ -498,7 +498,7 @@ report.append('=== Nominators with multiple nominations ===\n')
 multipleNomsOut = []
 mnOutput = []
 for user in nomsByNominator:
-    if len(nomsByNominator[user]) > 1:
+    if len(nomsByNominator[user]) > 2:
         multipleNomsOut.append([
             user,
             len(nomsByNominator[user]),nomsByNominator[user]
