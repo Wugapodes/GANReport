@@ -14,7 +14,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.2.0'
+version = '1.3.0'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -167,6 +167,13 @@ def sectionLink(section,title):
     text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
      
+def getUsername(text):
+    if '[[User' in line:
+        name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
+    else:
+        name = text
+    return(name)
+     
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 fullText= page.text
@@ -175,9 +182,7 @@ fullText=fullText.split('\n')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)'\
-        +r'(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?'\
-        +r'(?:\}\} (.*?) )?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
 sctRegex = re.compile(r'==+ (.*?) (==+)')
 ##Finds the Wikipedia UTC Timestamp
@@ -240,11 +245,9 @@ for line in fullText:
         continue
     elif 'GANentry' in line:
         matches=entRegex.search(line)
-        if matches.group(3) != None:
-            username = matches.group(3)
-        elif matches.group(3) == None and matches.group(4) != None:
-            username = matches.group(4)
-        else:
+        try:
+            username = getUsername(matches.group(3))
+        except:
             badNoms.append([matches.group(1),subSectName])
             username = 'Unknown'
         if username not in nomsByNominator:
@@ -266,7 +269,7 @@ for line in fullText:
                     matches.group(2), # Nomination number
                     sectName,         # Section name
                     subSectName,      # Subsection name
-                    matches.group(5), # Timestamp
+                    matches.group(4), # Timestamp
                     username          # Nominator's name
                   ]
         entry.append(entryData)
