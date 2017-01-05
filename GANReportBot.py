@@ -4,6 +4,8 @@ import pywikibot
 import re
 from datetime import date
 import datetime
+import logging
+import sys
 
 ########
 # Changing this to 1 makes your changes live on the report page, do not set to
@@ -176,6 +178,34 @@ def printData(data, index):
         rText+=dataPoint
     return(rText)
      
+def getUsername(text):
+    if '[[User' in line:
+        name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
+    else:
+        name = text
+    return(name)
+     
+def startLogging(loglevel):
+    numeric_level = getattr(logging, loglevel.upper(), None)
+    if numeric_level != None:
+        logging.basicConfig(level=numeric_level, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
+    else:
+        logging.basicConfig(level=logging.WARNING, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
+        logging.warning('Invalid log level \'%s\'. Defaulting to WARNING' % loglevel)
+        
+def checkArgs(arg):
+    arg = arg.split('=')
+    if arg[0] == '--log' or arg[0] == '-l':
+        startLogging(arg[1])
+    else:
+        raise ValueError('Unknown command line argument \'%s\'' % arg[0])
+
+for i in range(1,len(sys.argv)):
+    checkArgs(sys.argv[i])
+
+logging.info("### Starting new run ###")
+logging.info("live is set to %s" % live)
+logging.info("GANReportBot version %s" % version)
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 fullText= page.text
@@ -184,9 +214,7 @@ fullText=fullText.split('\n')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)'\
-        +r'(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?'\
-        +r'(?:\}\} (.*?) )?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
 backlogRegex = re.compile(r'(\d+) (.*?) (\d\d\d\d).*?(\d+) nom.*? (\d+)'\
                           +r'(?:(?:.*?On Hold.*?x (\d+))?'\
@@ -252,11 +280,10 @@ for line in fullText:
         continue
     elif 'GANentry' in line:
         matches=entRegex.search(line)
-        if matches.group(3) != None:
-            username = matches.group(3)
-        elif matches.group(3) == None and matches.group(4) != None:
-            username = matches.group(4)
-        else:
+        try:
+            username = getUsername(matches.group(3))
+        except:
+            logging.warning("Unable to get username for %s" % line)
             badNoms.append([matches.group(1),subSectName])
             username = 'Unknown'
         if username not in nomsByNominator:
@@ -278,7 +305,7 @@ for line in fullText:
                     matches.group(2), # Nomination number
                     sectName,         # Section name
                     subSectName,      # Subsection name
-                    matches.group(5), # Timestamp
+                    matches.group(4), # Timestamp
                     username          # Nominator's name
                   ]
         entry.append(entryData)
@@ -356,6 +383,8 @@ oldScnOp=sortByKey(oldScnOp,rIndex)
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
 archive = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
                               +'Backlog archive')
+
+logging.info("Loaded report page")
 
 #Make Backlog report
 backlogReport = []
@@ -574,7 +603,10 @@ toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
 # Determine if the bot should write to a live page or the test page. Defaults to 
 #     test page. Value of -1 tests backlog update (not standard because the file
 #     size is very big).
-if live == 1:
+if live == 2:
+    pass
+elif live == 1:
+    logging.info("Writing to real pages")
     page.text=''.join(toPrint)
     page.save('Updating exceptions report, WugBot v'+version)
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
@@ -582,6 +614,7 @@ if live == 1:
     page.text+=oldLine
     page.save('Update of GAN report backlog, WugBot v'+version)
 else:
+    logging.info("Writing to test page")
     page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
     page.text=''.join(toPrint)
     if live == 2:
@@ -590,6 +623,7 @@ else:
     	message='Testing expanded reporting. Output of v'+version
     page.save(message)
     if live==-1:
+        logging.info("Writing to backlog archive test page")
         page = pywikibot.Page(site,
             'User:Wugapodes/GANReportBotTest/Backlog archive')
         testText=page.text
@@ -597,3 +631,4 @@ else:
         page.save('Testing backlog report updating. Output of v'+version)
     
 print(wikiTimeStamp())
+logging.info("Finished")
