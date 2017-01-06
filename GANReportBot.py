@@ -16,7 +16,7 @@ live = 2
 ########
 # Version Number
 ########
-version = '1.3.1'
+version = '1.3.2'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -399,7 +399,7 @@ report+= ['\n',
 # Write backlog report
 for item in backlogReport:
     report.append(item)
-report.append(":''Previous daily backlogs can be viewed at the" \
+report.append(":''Previous daily backlogs can be viewed at the " \
               +"[[/Backlog archive|backlog archive]].''\n\n")
 # Write the exceptions report
 #   Write reviews on hold for over 7 days       
@@ -554,7 +554,7 @@ elif live == 1:
     page.save('Updating exceptions report, WugBot v'+version)
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
                                 +'Backlog archive')
-    page.text+=oldLine
+    page.text+=oldLine+'\n'
     page.save('Update of GAN report backlog, WugBot v'+version)
 else:
     logging.info("Writing to test page")
