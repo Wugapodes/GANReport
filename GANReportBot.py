@@ -401,7 +401,7 @@ oldLine=backlogReport.pop()
 #Make Backlog Chart
 backlogEntry = archive.text.split('\n')
 backlogEntry.reverse()
-bklgData = backlogReport + backlogEntry[0:90-len(backlogReport)]
+bklgData = backlogReport + backlogEntry[0:30-len(backlogReport)]
 dayData=[]
 i=0
 for day in bklgData:
