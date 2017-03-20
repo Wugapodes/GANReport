@@ -273,9 +273,9 @@ for line in fullText:
         except:
             logging.warning("Unable to get username for %s" % line)
             try:
-	            badNoms.append([matches.group(1),subSectName])
-	        except Exception as e:
-	        	logging.error(e)
+                badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.error(e)
             username = 'Unknown'
         if username not in nomsByNominator:
             nomsByNominator[username]=[]
