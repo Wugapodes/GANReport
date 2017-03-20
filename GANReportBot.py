@@ -12,11 +12,11 @@ import sys
 # live mode unless you have been approved for bot usage. Do not merge commits 
 # where this is not default to 0
 ########
-live = 2
+live = 0
 ########
 # Version Number
 ########
-version = '1.3.2'
+version = '1.3.3'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -79,11 +79,11 @@ def monthConvert(name):
 
 def appendUpdates(toprint,updates,index=3,rev=True):
     '''
-    Takes an iterable array and the output array and returns teh output array 
+    Takes an iterable array and the output array and returns the output array 
     appended with the marked up iterable array.
     '''
     for item in updates:
-        if item[4] != None:
+        if item[3] != None:
             i = 3
         else:
             i = 2
@@ -272,7 +272,10 @@ for line in fullText:
             username = getUsername(matches.group(3))
         except:
             logging.warning("Unable to get username for %s" % line)
-            badNoms.append([matches.group(1),subSectName])
+            try:
+	            badNoms.append([matches.group(1),subSectName])
+	        except Exception as e:
+	        	logging.error(e)
             username = 'Unknown'
         if username not in nomsByNominator:
             nomsByNominator[username]=[]
