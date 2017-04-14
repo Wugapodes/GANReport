@@ -12,7 +12,7 @@ import sys
 # live mode unless you have been approved for bot usage. Do not merge commits 
 # where this is not default to 0
 ########
-live = 1
+live = 0
 ########
 # Version Number
 ########
