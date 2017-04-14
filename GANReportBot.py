@@ -12,11 +12,11 @@ import sys
 # live mode unless you have been approved for bot usage. Do not merge commits 
 # where this is not default to 0
 ########
-live = 0
+live = 1
 ########
 # Version Number
 ########
-version = '1.3.3'
+version = '1.3.4'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -99,13 +99,18 @@ def dateActions(nominList,index):
     '''
     for item in nominList:
         iMatch = datRegex.search(item[index])
-        day = int(iMatch.group(1))
-        month = monthConvert(str(iMatch.group(2)))
-        year = int(iMatch.group(3))
-        d0 = date(year, month, day)
-        delta = today-d0
-        item.append(delta.days)
-        #print(delta.days,'days')
+	if iMatch != None:
+            day = int(iMatch.group(1))
+            month = monthConvert(str(iMatch.group(2)))
+            year = int(iMatch.group(3))
+            d0 = date(year, month, day)
+            delta = today-d0
+            item.append(delta.days)
+            #print(delta.days,'days')
+        else:
+            print(item[index])
+            print(item)
+            item.append(None)
     return(nominList)
 
 def sortByKey(nominList,index):
@@ -166,6 +171,8 @@ def updateSummary(section,subsection=False):
     return(text)
     
 def sectionLink(section,title):
+    if section == None:
+        section = 'Miscellaneous'
     text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
      
@@ -291,14 +298,21 @@ for line in fullText:
         else:
             onRev.append(entryData)
     else:
-        entryData=[
-                    matches.group(1), # Title of the nominated article
-                    matches.group(2), # Nomination number
-                    sectName,         # Section name
-                    subSectName,      # Subsection name
-                    matches.group(4), # Timestamp
-                    username          # Nominator's name
-                  ]
+    	try:
+		    entryData=[
+		                matches.group(1), # Title of the nominated article
+		                matches.group(2), # Nomination number
+		                sectName,         # Section name
+		                subSectName,      # Subsection name
+		                matches.group(4), # Timestamp
+		                username          # Nominator's name
+		              ]
+		except AttributeError as e:
+			logging.warning("Unable to create nom entry for %s" % line)
+			try:
+				badNoms.append([matches.group(1),subSectName])
+			except Exception as e:
+				logging.error(e)						
         entry.append(entryData)
         nomin.append(entryData)
         if subSectName != None:
