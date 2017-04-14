@@ -99,7 +99,7 @@ def dateActions(nominList,index):
     '''
     for item in nominList:
         iMatch = datRegex.search(item[index])
-	if iMatch != None:
+    if iMatch != None:
             day = int(iMatch.group(1))
             month = monthConvert(str(iMatch.group(2)))
             year = int(iMatch.group(3))
@@ -298,21 +298,21 @@ for line in fullText:
         else:
             onRev.append(entryData)
     else:
-    	try:
-		    entryData=[
-		                matches.group(1), # Title of the nominated article
-		                matches.group(2), # Nomination number
-		                sectName,         # Section name
-		                subSectName,      # Subsection name
-		                matches.group(4), # Timestamp
-		                username          # Nominator's name
-		              ]
-		except AttributeError as e:
-			logging.warning("Unable to create nom entry for %s" % line)
-			try:
-				badNoms.append([matches.group(1),subSectName])
-			except Exception as e:
-				logging.error(e)						
+        try:
+            entryData=[
+                        matches.group(1), # Title of the nominated article
+                        matches.group(2), # Nomination number
+                        sectName,         # Section name
+                        subSectName,      # Subsection name
+                        matches.group(4), # Timestamp
+                        username          # Nominator's name
+                      ]
+        except AttributeError as e:
+            logging.warning("Unable to create nom entry for %s" % line)
+            try:
+                badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.error(e)                        
         entry.append(entryData)
         nomin.append(entryData)
         if subSectName != None:
