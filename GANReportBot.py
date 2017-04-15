@@ -312,7 +312,8 @@ for line in fullText:
             try:
                 badNoms.append([matches.group(1),subSectName])
             except Exception as e:
-                logging.error(e)                        
+                logging.error(e)
+            continue
         entry.append(entryData)
         nomin.append(entryData)
         if subSectName != None:
