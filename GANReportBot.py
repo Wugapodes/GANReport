@@ -99,7 +99,7 @@ def dateActions(nominList,index):
     '''
     for item in nominList:
         iMatch = datRegex.search(item[index])
-    if iMatch != None:
+        if iMatch != None:
             day = int(iMatch.group(1))
             month = monthConvert(str(iMatch.group(2)))
             year = int(iMatch.group(3))
