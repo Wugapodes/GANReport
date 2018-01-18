@@ -16,7 +16,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.4'
+version = '1.4.1-dev'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -462,7 +462,7 @@ for item in oThirty:
                 +str(item[rIndex-1])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
-                +sectionLink(item[j],item[0])+" ('''"\
+                +' '+sectionLink(item[j],item[0])+" ('''"\
                 +str(item[rIndex-1])+"''' days)\n"
     else:
         text = '# '+sectionLink(item[j],item[0])+" ('''"\
@@ -594,7 +594,7 @@ for ent in topTen:
 pText = '\n&bull; '.join(links[:5])
 pText+='\n<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n&bull; '
 pText+= '\n&bull; '.join(links[5:])
-pText+= '-->'
+pText+= '\n-->'
 if live == 1:
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/backlog/items')
     page.text = pText
