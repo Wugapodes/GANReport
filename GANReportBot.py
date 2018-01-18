@@ -4,6 +4,19 @@ import pywikibot
 import re
 from datetime import date
 import datetime
+import logging
+import sys
+
+########
+# Changing this to 1 makes your changes live on the report page, do not set to
+# live mode unless you have been approved for bot usage. Do not merge commits 
+# where this is not default to 0
+########
+live = 0
+########
+# Version Number
+########
+version = '1.3.4'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -26,15 +39,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
 THE SOFTWARE.
 '''
-
-########
-# Changing this to 1 makes your changes live on the report page, do not set to
-# live mode unless you have been approved for bot usage. Do not merge commits 
-# where this is not default to 0
-########
-live = 0
-version = '1.1-dev'
-########
 
 def monthConvert(name):
     '''
@@ -75,15 +79,15 @@ def monthConvert(name):
 
 def appendUpdates(toprint,updates,index=3,rev=True):
     '''
-    Takes an iterable array and the output array and returns teh output array 
+    Takes an iterable array and the output array and returns the output array 
     appended with the marked up iterable array.
     '''
     for item in updates:
-        if item[4] != None:
+        if item[3] != None:
             i = 3
         else:
             i = 2
-        text = '# '+sectionLink(item[i,item[0])+" ('''"\
+        text = '# '+sectionLink(item[i],item[0])+" ('''"\
                 +str(item[index])+"''' days)\n"
         toprint.append(text)
     return(toprint)
@@ -95,13 +99,18 @@ def dateActions(nominList,index):
     '''
     for item in nominList:
         iMatch = datRegex.search(item[index])
-        day = int(iMatch.group(1))
-        month = monthConvert(str(iMatch.group(2)))
-        year = int(iMatch.group(3))
-        d0 = date(year, month, day)
-        delta = today-d0
-        item.append(delta.days)
-        #print(delta.days,'days')
+        if iMatch != None:
+            day = int(iMatch.group(1))
+            month = monthConvert(str(iMatch.group(2)))
+            year = int(iMatch.group(3))
+            d0 = date(year, month, day)
+            delta = today-d0
+            item.append(delta.days)
+            #print(delta.days,'days')
+        else:
+            print(item[index])
+            print(item)
+            item.append(None)
     return(nominList)
 
 def sortByKey(nominList,index):
@@ -131,7 +140,7 @@ def updateSummary(section,subsection=False):
         h = str(nomsBySection[section][i][subsection][1])
         r = str(nomsBySection[section][i][subsection][2])
         s = str(nomsBySection[section][i][subsection][3])
-        text = ":'''"+sectionLink(subsection,subsection+"''' ("+n+")"
+        text = ":'''"+sectionLink(subsection,subsection)+"''' ("+n+")"
     else:
         n = str(nomsBySection[section][0])
         h = str(nomsBySection[section][1])
@@ -162,9 +171,39 @@ def updateSummary(section,subsection=False):
     return(text)
     
 def sectionLink(section,title):
+    if section == None:
+        section = 'Miscellaneous'
     text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
      
+def getUsername(text):
+    if '[[User' in line:
+        name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
+    else:
+        name = text
+    return(name)
+     
+def startLogging(loglevel):
+    numeric_level = getattr(logging, loglevel.upper(), None)
+    if numeric_level != None:
+        logging.basicConfig(level=numeric_level, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
+    else:
+        logging.basicConfig(level=logging.WARNING, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
+        logging.warning('Invalid log level \'%s\'. Defaulting to WARNING' % loglevel)
+        
+def checkArgs(arg):
+    arg = arg.split('=')
+    if arg[0] == '--log' or arg[0] == '-l':
+        startLogging(arg[1])
+    else:
+        raise ValueError('Unknown command line argument \'%s\'' % arg[0])
+
+for i in range(1,len(sys.argv)):
+    checkArgs(sys.argv[i])
+
+logging.info("### Starting new run ###")
+logging.info("live is set to %s" % live)
+logging.info("GANReportBot version %s" % version)
 site = pywikibot.Site('en', 'wikipedia')
 page = pywikibot.Page(site,'Wikipedia:Good article nominations')
 fullText= page.text
@@ -173,9 +212,7 @@ fullText=fullText.split('\n')
 #Compile regexes
 ##Finds GAN entries and returns time stamp, title, and the following line
 entRegex = re.compile(
-        r'\{\{GANentry.*?\|1\=(.*?)\|2=(\d+)'\
-        +r'(?:.*?\[\[(?:(?:U|u)ser|(?:U|u)ser talk)\:(.*?)\|.*)?'\
-        +r'(?:\}\} (.*?) )?(\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
 sctRegex = re.compile(r'==+ (.*?) (==+)')
 ##Finds the Wikipedia UTC Timestamp
@@ -238,12 +275,14 @@ for line in fullText:
         continue
     elif 'GANentry' in line:
         matches=entRegex.search(line)
-        if matches.group(3) != None:
-            username = matches.group(3)
-        elif matches.group(3) == None and matches.group(4) != None:
-            username = matches.group(4)
-        else:
-            badNoms.append([matches.group(1),subSectName])
+        try:
+            username = getUsername(matches.group(3))
+        except:
+            logging.warning("Unable to get username for %s" % line)
+            try:
+                badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.error(e)
             username = 'Unknown'
         if username not in nomsByNominator:
             nomsByNominator[username]=[]
@@ -259,14 +298,22 @@ for line in fullText:
         else:
             onRev.append(entryData)
     else:
-        entryData=[
-                    matches.group(1), # Title of the nominated article
-                    matches.group(2), # Nomination number
-                    sectName,         # Section name
-                    subSectName,      # Subsection name
-                    matches.group(5), # Timestamp
-                    username          # Nominator's name
-                  ]
+        try:
+            entryData=[
+                        matches.group(1), # Title of the nominated article
+                        matches.group(2), # Nomination number
+                        sectName,         # Section name
+                        subSectName,      # Subsection name
+                        matches.group(4), # Timestamp
+                        username          # Nominator's name
+                      ]
+        except AttributeError as e:
+            logging.warning("Unable to create nom entry for %s" % line)
+            try:
+                badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.error(e)
+            continue
         entry.append(entryData)
         nomin.append(entryData)
         if subSectName != None:
@@ -302,9 +349,9 @@ rIndex = 8 # index number for appended days since action
 oldestnoms = nomin
 oldestnoms = dateActions(oldestnoms,4)
 topTen = []
-oldestnoms=sortByKey(oldestnoms,5)
-while len(topTen) < 10:
-    topTen.append(oldestnoms.pop(0))
+oldestnoms=sortByKey(oldestnoms,6)
+for i in range(10):
+    topTen.append(oldestnoms[i])
 
 #Get all nominations older than 30 days
 entry = dateActions(entry,4)
@@ -340,6 +387,7 @@ oldScnOp=sortByKey(oldScnOp,rIndex)
 
 #Load report page (must be here because backlog report requires it be loaded)
 page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
+logging.info("Loaded report page")
 
 #Make Backlog report
 backlogReport = []
@@ -349,7 +397,7 @@ curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
     + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
     + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
     + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
-    + str(scnd)+'<br />'
+    + str(scnd)+'<br />\n'
 backlogReport.insert(0,curEntry)
 oldLine=backlogReport.pop()
 
@@ -360,7 +408,7 @@ oldLine=backlogReport.pop()
 # Write Oldest nominations
 report = ['{{/top}}\n\n',
           '== Oldest nominations ==\n',
-          ":''List of the oldest ten nominations that have had no activity" \
+          ":''List of the oldest ten nominations that have had no activity " \
           +"(placed on hold, under review or requesting a 2nd opinion)''\n",
     ]
 report = appendUpdates(report,topTen,index=6,rev=False)
@@ -369,7 +417,7 @@ report+= ['\n',
 # Write backlog report
 for item in backlogReport:
     report.append(item)
-report.append(":''Previous daily backlogs can be viewed at the" \
+report.append(":''Previous daily backlogs can be viewed at the " \
               +"[[/Backlog archive|backlog archive]].''\n\n")
 # Write the exceptions report
 #   Write reviews on hold for over 7 days       
@@ -407,17 +455,17 @@ for item in oThirty:
     if any(item[0] in i for i in onHld):
         text = '# [[Image:Symbol wait.svg|15px|On Hold]] '\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     elif any(item[0] in i for i in onRev):
         text = '# [[Image:Searchtool.svg|15px|Under Review]] '\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     elif any(item[0] in i for i in scnOp):
         text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
                 +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex])+"''' days)\n"
+                +str(item[rIndex-1])+"''' days)\n"
     else:
-        text = '# '+sectionLink(item[j],item[0])\+" ('''"\
+        text = '# '+sectionLink(item[j],item[0])+" ('''"\
                 +str(item[rIndex-1])+"''' days)\n"
     report.append(text)
 
@@ -440,7 +488,7 @@ report.append('=== Nominators with multiple nominations ===\n')
 multipleNomsOut = []
 mnOutput = []
 for user in nomsByNominator:
-    if len(nomsByNominator[user]) > 1:
+    if len(nomsByNominator[user]) > 2:
         multipleNomsOut.append([
             user,
             len(nomsByNominator[user]),nomsByNominator[user]
@@ -511,26 +559,30 @@ report+=summary
 toPrint=report
 # Sign it
 toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
-    +' WugBot-v1.0 -->\n')
+    +' WugBot v'+version+' -->\n')
 
 # Determine if the bot should write to a live page or the test page. Defaults to 
 #     test page. Value of -1 tests backlog update (not standard because the file
 #     size is very big).
-if live == 1:
+if live == 2:
+    pass
+elif live == 1:
+    logging.info("Writing to real pages")
     page.text=''.join(toPrint)
-    page.save('Updating exceptions report')
+    page.save('Updating exceptions report, WugBot v'+version)
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
                                 +'Backlog archive')
-    page.text+='<br />\n'
-    page.text+=oldLine
-    page.save('Update of GAN report backlog')
+    page.text+=oldLine+'\n'
+    page.save('Update of GAN report backlog, WugBot v'+version)
 else:
+    logging.info("Writing to test page")
     page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
     page.text=''.join(toPrint)
     page.save('Testing expanded reporting')
     if live==-1:
-        page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/'\
-                                    +'Backlog archive')
+        logging.info("Writing to backlog archive test page")
+        page = pywikibot.Page(site,
+            'User:Wugapodes/GANReportBotTest/Backlog archive')
         testText=page.text
         page.text=testText
         page.save('Testing backlog report updating')
@@ -553,3 +605,4 @@ else:
     page.save('Testing WugBot v%s' % version)
 
 print(wikiTimeStamp())
+logging.info("Finished")
