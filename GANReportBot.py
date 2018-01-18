@@ -16,7 +16,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.3.4'
+version = '1.4-dev'
 
 '''
 Copyright (c) 2016 Wugpodes
