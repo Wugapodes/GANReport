@@ -592,7 +592,7 @@ links = []
 for ent in topTen:
     links.append(sectionLink(ent[2],ent[0]))
 pText = '\n&bull; '.join(links[:5])
-pText+='\n<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n'
+pText+='\n<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n&bull; '
 pText+= '\n&bull; '.join(links[5:])
 pText+= '-->'
 if live == 1:
