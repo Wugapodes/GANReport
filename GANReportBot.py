@@ -591,10 +591,10 @@ else:
 links = []
 for ent in topTen:
     links.append(sectionLink(ent[2],ent[0]))
-pText = r'\n&bull;'.join(links[:5])
-pText+=r'<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n'
-pText+= r'\n&bull;'.join(links[5:])
-pText+= r'-->'
+pText = '\n&bull;'.join(links[:5])
+pText+='<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n'
+pText+= '\n&bull;'.join(links[5:])
+pText+= '-->'
 if live == 1:
     page = pywikibot.Page(site,'Wikipedia:Good article nominations/backlog/items')
     page.text = pText
