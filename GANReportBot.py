@@ -16,7 +16,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.4.1-dev'
+version = '1.4.2-dev'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -590,7 +590,11 @@ else:
 # Update the transcluded list of the 5 oldest noms
 links = []
 for ent in topTen:
-    links.append(sectionLink(ent[2],ent[0]))
+    if ent[3] == None:
+        i = 2
+    else:
+        i = 3
+    links.append(sectionLink(ent[i],ent[0]))
 pText = '\n&bull; '.join(links[:5])
 pText+='\n<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n&bull; '
 pText+= '\n&bull; '.join(links[5:])
