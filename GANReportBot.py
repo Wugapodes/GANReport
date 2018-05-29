@@ -9,34 +9,34 @@ import sys
 
 ########
 # Changing this to 1 makes your changes live on the report page, do not set to
-# live mode unless you have been approved for bot usage. Do not merge commits 
+# live mode unless you have been approved for bot usage. Do not merge commits
 # where this is not default to 0
 ########
 live = 0
 ########
 # Version Number
 ########
-version = '1.4.2'
+version = '1.4.3-dev'
 
 '''
 Copyright (c) 2016 Wugpodes
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of 
-this software and associated documentation files (the "Software"), to deal in 
-the Software without restriction, including without limitation the rights to 
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
-of the Software, and to permit persons to whom the Software is furnished to do 
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
 so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all 
+The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
@@ -79,7 +79,7 @@ def monthConvert(name):
 
 def appendUpdates(toprint,updates,index=3,rev=True):
     '''
-    Takes an iterable array and the output array and returns the output array 
+    Takes an iterable array and the output array and returns the output array
     appended with the marked up iterable array.
     '''
     for item in updates:
@@ -130,7 +130,7 @@ def wikiTimeStamp():
     +monthConvert(datetime.datetime.utcnow().month)+' '\
     +str(datetime.datetime.utcnow().year)+' (UTC)'
     return(stamp)
-    
+
 def updateSummary(section,subsection=False):
     global nomsBySection
     global subSectDict
@@ -169,20 +169,20 @@ def updateSummary(section,subsection=False):
         text += '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
                 +' x '+s+'\n'
     return(text)
-    
+
 def sectionLink(section,title):
     if section == None:
         section = 'Miscellaneous'
     text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
-     
+
 def getUsername(text):
     if '[[User' in line:
         name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
     else:
         name = text
     return(name)
-     
+
 def startLogging(loglevel):
     numeric_level = getattr(logging, loglevel.upper(), None)
     if numeric_level != None:
@@ -190,7 +190,7 @@ def startLogging(loglevel):
     else:
         logging.basicConfig(level=logging.WARNING, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
         logging.warning('Invalid log level \'%s\'. Defaulting to WARNING' % loglevel)
-        
+
 def checkArgs(arg):
     arg = arg.split('=')
     if arg[0] == '--log' or arg[0] == '-l':
@@ -234,8 +234,8 @@ nomsByNominator = {}
 '''
 FOR LOOP DOCUMENTATION
 
-The following for loop goes line by line through the nomination page. It checks 
-to see: 
+The following for loop goes line by line through the nomination page. It checks
+to see:
     If the line is a section header:
         If the line is a subsection header:
             then it updates the subsection dictionaries
@@ -249,18 +249,18 @@ It then checks (see note below):
         then it sorts the associated nomination
     Else it updates the entry data and adds it to entry and nomin
 
-NOTE: This runs backwards. GAReview templates only come /after/ a nomination 
-so a nomination line will be added to entry and nomin and the next line, if it 
-is not being worked on (ie no GAReview template) then it will overwrite the 
-previous nomination data. But if there is a GAReview template it is /not/ 
-overwritten and is used to sort the previous nomination into the proper place 
+NOTE: This runs backwards. GAReview templates only come /after/ a nomination
+so a nomination line will be added to entry and nomin and the next line, if it
+is not being worked on (ie no GAReview template) then it will overwrite the
+previous nomination data. But if there is a GAReview template it is /not/
+overwritten and is used to sort the previous nomination into the proper place
 and removes it from nomin (because it's on review)
 '''
 for line in fullText:
     if '==' in line: #Checks to see if section
         if '===' in line: #Checks to see if subsection
             subSectName=re.search(sctRegex,line).group(1)
-            # array nums represent: 
+            # array nums represent:
             # [# of noms, # on hold, # on rev, # 2nd opinion]
             nomsBySection[sectName][4][subSectName]=[0,0,0,0]
             # keeps track of the indices of subsections in the data structure
@@ -268,7 +268,7 @@ for line in fullText:
         else:
             result=re.search(sctRegex,line)
             sectName=result.group(1)
-            # array nums represent: 
+            # array nums represent:
             # [# of noms, # on hold, # on rev, # 2nd opinion]
             nomsBySection[sectName]=[0,0,0,0,{}]
             subSectName=None
@@ -372,9 +372,15 @@ oldOnHold=sortByKey(oldOnHold,rIndex)
 #Get the nominations ON REVIEW for 7 days or longer
 onRev=dateActions(onRev,rIndex-2)
 oldOnRev=[]
+
 for item in onRev:
-    if int(item[rIndex]) >= 7:
-        oldOnRev.append(item)
+    try:
+        if int(item[rIndex]) >= 7:
+            oldOnRev.append(item)
+    except TypeError as e:
+        logging.warning("No reviewer information for %s" % item[0])
+        badNoms.append(item)
+
 oldOnRev=sortByKey(oldOnRev,rIndex)
 
 #Get the nominations ON SECOND OPINION for 7 days or longer
@@ -420,7 +426,7 @@ for item in backlogReport:
 report.append(":''Previous daily backlogs can be viewed at the " \
               +"[[/Backlog archive|backlog archive]].''\n\n")
 # Write the exceptions report
-#   Write reviews on hold for over 7 days       
+#   Write reviews on hold for over 7 days
 report+= ['== Exceptions report ==\n',
           '=== Holds over 7 days old ===\n']
 report=appendUpdates(report,oldOnHold,rIndex)
@@ -508,7 +514,7 @@ for item in nomsSort:
     line+='\n'
     mnOutput.append(line)
 report += mnOutput
-        
+
 # Counts up all the noms, holds, reviews, and 2nd opinions in each section and
 #   iterates the counter in the nomsBySection datastructure
 for item in entry:
@@ -554,14 +560,14 @@ for section in sectionNameList:
 # Writes the summary report
 report.append('== Summary ==\n')
 report+=summary
-            
+
 # A relic of the old way, in memoriam WugBot-v0.0
 toPrint=report
 # Sign it
 toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
     +' WugBot v'+version+' -->\n')
 
-# Determine if the bot should write to a live page or the test page. Defaults to 
+# Determine if the bot should write to a live page or the test page. Defaults to
 #     test page. Value of -1 tests backlog update (not standard because the file
 #     size is very big).
 if live == 2:
@@ -586,7 +592,7 @@ else:
         testText=page.text
         page.text=testText
         page.save('Testing backlog report updating')
-    
+
 # Update the transcluded list of the 5 oldest noms
 links = []
 for ent in topTen:
