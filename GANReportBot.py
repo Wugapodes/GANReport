@@ -41,123 +41,109 @@ THE SOFTWARE.
 '''
 
 class NomPage:
+    ##Finds GAN entries and returns time stamp, title, and the following line
+    entRegex = re.compile(
+            r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        )
     def __init__(self,text):
         self.raw_text = text
         self.text = text.split("\n")
-        self.entry   = []
-        self.noms   = []
         self.badNoms = []
-        # onRev, onHld, waitg, and scnOp can be computed from
-        #  Entry instance data
-
-        self.nomsBySection = {}
-        self.subSectDict = {}
-        self.nomsByNominator = {}
+        self.section = []
 
     def parse(text=None):
         if text == None:
             text = self.text
-        '''
-        FOR LOOP DOCUMENTATION
-
-        The following for loop goes line by line through the nomination page.
-        It checks to see:
-            If the line is a section header:
-                If the line is a subsection header:
-                    then it updates the subsection dictionaries
-                If it is not a subsection (i.e. only a section):
-                    then it updates the section dictionary
-            Else if it is a GANEntry template:
-                stores the regex output in matches
-            Else if it is none of the above nor a GAReview it skips the line
-        It then checks (see note below):
-            If it is a GAReview template:
-                then it sorts the associated nomination
-            Else it updates the entry data and adds it to entry and nomin
-
-        NOTE: This runs backwards. GAReview templates only come /after/ a
-        nomination so a nomination line will be added to entry and nomin and
-        the next line, if it is not being worked on (ie no GAReview template)
-        then it will overwrite the previous nomination data. But if there is a
-        GAReview template it is /not/ overwritten and is used to sort the
-        previous nomination into the proper place and removes it from nomin
-        (because it's on review)
-        '''
         for line in text:
-            if '==' in line: #Checks to see if section
-                if '===' in line: #Checks to see if subsection
-                    subSectName=re.search(sctRegex,line).group(1)
-                    # array nums represent:
-                    # [# of noms, # on hold, # on rev, # 2nd opinion]
-                    nomsBySection[sectName][4][subSectName]=[0,0,0,0]
-                    # keeps track of the indices of subsections in the data structure
-                    subSectDict[subSectName]=len(nomsBySection[sectName])-1
-                else:
-                    result=re.search(sctRegex,line)
-                    sectName=result.group(1)
-                    # array nums represent:
-                    # [# of noms, # on hold, # on rev, # 2nd opinion]
-                    nomsBySection[sectName]=[0,0,0,0,{}]
-                    subSectName=None
+            if '==' in line:  # If line is a (sub-)section heading...
+                line = line.strip()
+                if '===' in line:  # If line is a subsection heading...
+                    subsec = SubSection(line.strip('=').strip(),c_sec)
+                    self.section[-1].subsections.append(subsec)
+                else: # If line is a section heading...
+                    sec = Section(line.strip('=').strip())
+                    self.section.append(sec)
+                c_sec = self.section[-1]
                 continue
-            elif 'GANentry' in line:
+            elif 'GANentry' in line:  # If line is a GA nom...
+                c_sub = c_sec.subsections[-1]
                 matches=entRegex.search(line)
-                try:
-                    username = getUsername(matches.group(3))
-                except:
-                    logging.warning("Unable to get username for %s" % line)
-                    try:
-                        badNoms.append([matches.group(1),subSectName])
-                    except Exception as e:
-                        logging.error(e)
-                    username = 'Unknown'
-                if username not in nomsByNominator:
-                    nomsByNominator[username]=[]
-            elif 'GAReview' not in line:
-                continue
-            if 'GAReview' in line:
-                nomin.pop()
-                entryData.append(line)
+                entry = Entry(matches,line)
+                c_sub.entries.append(entry)
+            elif 'GAReview' in line:  # If a review template...
+                c_entry = c_sec.subsections[-1].entries[-1]
                 if 'on hold' in line:
-                    onHld.append(entryData)
+                    c_entry.status = 'H'
                 elif '2nd opinion' in line:
-                    scnOp.append(entryData)
-                else:
-                    onRev.append(entryData)
-            else:
-                try:
-                    entryData=[
-                                matches.group(1), # Title of the nominated article
-                                matches.group(2), # Nomination number
-                                sectName,         # Section name
-                                subSectName,      # Subsection name
-                                matches.group(4), # Timestamp
-                                username          # Nominator's name
-                              ]
-                except AttributeError as e:
-                    logging.warning("Unable to create nom entry for %s" % line)
-                    try:
-                        badNoms.append([matches.group(1),subSectName])
-                    except Exception as e:
-                        logging.error(e)
-                    continue
-                entry.append(entryData)
-                nomin.append(entryData)
-                if subSectName != None:
-                    sec = subSectName
-                else:
-                    sec = sectName
-                nomsByNominator[username].append([matches.group(1),sec])
+                    c_entry.status = '2'
+                else: # Otherwise it's under review.
+                    c_entry.status = 'R'
 
-
-class SubSection:
-    def __init__(self, name):
+class Section:
+    sctRegex = re.compile(r'==+ (.*?) (==+)')
+    def __init__(self,name):
         self.name = name
         self.subsections = []
 
+class SubSection(Section):
+    def __init__(self, name, section):
+        Section.__init__(name)
+        self.entries = []
+        self.section = section
+
 class Entry:
-    def __init__(self):
-        pass
+    def __init__(self,line,matches):
+        self.text = line
+        self._matches = matches
+        self.status = None
+
+        try:
+            username = getUsername(matches.group(3))
+        except:
+            logging.warning("Unable to get username for %s" % line)
+            try:
+                self.badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.debug(e)
+                logging.error("Could not add %s to the badNoms list." % line)
+            username = 'Unknown'
+        self.nominator = username
+
+        try:
+            title = matches.group(1)
+        except:
+            logging.warning("Unable to get title for %s" % line)
+            try:
+                self.badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.debug(e)
+                logging.error("Could not add %s to the badNoms list." % line)
+            title = 'Unknown'
+        self.title = title
+
+        try:
+            review_num = matches.group(2))
+        except:
+            logging.warning("Unable to get review number for %s" % line)
+            try:
+                self.badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.debug(e)
+                logging.error("Could not add %s to the badNoms list." % line)
+            review_num = 1
+        self.number = review_num
+
+        try:
+            time = matches.group(4))
+        except:
+            logging.warning("Unable to get timestamp for %s" % line)
+            try:
+                self.badNoms.append([matches.group(1),subSectName])
+            except Exception as e:
+                logging.debug(e)
+                logging.error("Could not add %s to the badNoms list." % line)
+            time = 'Unknown'
+        self.timestamp = time
 
 
 def monthConvert(name):
@@ -299,9 +285,9 @@ def sectionLink(section,title):
 def getUsername(text):
     if '[[User' in line:
         name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
+        return(name)
     else:
-        name = text
-    return(name)
+        raise ValueError('Could not get username.')
 
 def startLogging(loglevel):
     global logging
@@ -329,11 +315,7 @@ def main():
     nomPage.parse()
 
     #Compile regexes
-    ##Finds GAN entries and returns time stamp, title, and the following line
-    entRegex = re.compile(
-            r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
-        )
-    sctRegex = re.compile(r'==+ (.*?) (==+)')
+
     ##Finds the Wikipedia UTC Timestamp
     datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
     '''
