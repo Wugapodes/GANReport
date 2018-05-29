@@ -16,7 +16,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.4.3-dev'
+version = '1.5.0-dev'
 
 '''
 Copyright (c) 2016 Wugpodes
@@ -39,6 +39,126 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
+
+class NomPage:
+    def __init__(self,text):
+        self.raw_text = text
+        self.text = text.split("\n")
+        self.entry   = []
+        self.noms   = []
+        self.badNoms = []
+        # onRev, onHld, waitg, and scnOp can be computed from
+        #  Entry instance data
+
+        self.nomsBySection = {}
+        self.subSectDict = {}
+        self.nomsByNominator = {}
+
+    def parse(text=None):
+        if text == None:
+            text = self.text
+        '''
+        FOR LOOP DOCUMENTATION
+
+        The following for loop goes line by line through the nomination page.
+        It checks to see:
+            If the line is a section header:
+                If the line is a subsection header:
+                    then it updates the subsection dictionaries
+                If it is not a subsection (i.e. only a section):
+                    then it updates the section dictionary
+            Else if it is a GANEntry template:
+                stores the regex output in matches
+            Else if it is none of the above nor a GAReview it skips the line
+        It then checks (see note below):
+            If it is a GAReview template:
+                then it sorts the associated nomination
+            Else it updates the entry data and adds it to entry and nomin
+
+        NOTE: This runs backwards. GAReview templates only come /after/ a
+        nomination so a nomination line will be added to entry and nomin and
+        the next line, if it is not being worked on (ie no GAReview template)
+        then it will overwrite the previous nomination data. But if there is a
+        GAReview template it is /not/ overwritten and is used to sort the
+        previous nomination into the proper place and removes it from nomin
+        (because it's on review)
+        '''
+        for line in text:
+            if '==' in line: #Checks to see if section
+                if '===' in line: #Checks to see if subsection
+                    subSectName=re.search(sctRegex,line).group(1)
+                    # array nums represent:
+                    # [# of noms, # on hold, # on rev, # 2nd opinion]
+                    nomsBySection[sectName][4][subSectName]=[0,0,0,0]
+                    # keeps track of the indices of subsections in the data structure
+                    subSectDict[subSectName]=len(nomsBySection[sectName])-1
+                else:
+                    result=re.search(sctRegex,line)
+                    sectName=result.group(1)
+                    # array nums represent:
+                    # [# of noms, # on hold, # on rev, # 2nd opinion]
+                    nomsBySection[sectName]=[0,0,0,0,{}]
+                    subSectName=None
+                continue
+            elif 'GANentry' in line:
+                matches=entRegex.search(line)
+                try:
+                    username = getUsername(matches.group(3))
+                except:
+                    logging.warning("Unable to get username for %s" % line)
+                    try:
+                        badNoms.append([matches.group(1),subSectName])
+                    except Exception as e:
+                        logging.error(e)
+                    username = 'Unknown'
+                if username not in nomsByNominator:
+                    nomsByNominator[username]=[]
+            elif 'GAReview' not in line:
+                continue
+            if 'GAReview' in line:
+                nomin.pop()
+                entryData.append(line)
+                if 'on hold' in line:
+                    onHld.append(entryData)
+                elif '2nd opinion' in line:
+                    scnOp.append(entryData)
+                else:
+                    onRev.append(entryData)
+            else:
+                try:
+                    entryData=[
+                                matches.group(1), # Title of the nominated article
+                                matches.group(2), # Nomination number
+                                sectName,         # Section name
+                                subSectName,      # Subsection name
+                                matches.group(4), # Timestamp
+                                username          # Nominator's name
+                              ]
+                except AttributeError as e:
+                    logging.warning("Unable to create nom entry for %s" % line)
+                    try:
+                        badNoms.append([matches.group(1),subSectName])
+                    except Exception as e:
+                        logging.error(e)
+                    continue
+                entry.append(entryData)
+                nomin.append(entryData)
+                if subSectName != None:
+                    sec = subSectName
+                else:
+                    sec = sectName
+                nomsByNominator[username].append([matches.group(1),sec])
+
+
+class SubSection:
+    def __init__(self, name):
+        self.name = name
+        self.subsections = []
+
+class Entry:
+    def __init__(self):
+        pass
+
 
 def monthConvert(name):
     '''
@@ -184,6 +304,7 @@ def getUsername(text):
     return(name)
 
 def startLogging(loglevel):
+    global logging
     numeric_level = getattr(logging, loglevel.upper(), None)
     if numeric_level != None:
         logging.basicConfig(level=numeric_level, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
@@ -198,421 +319,324 @@ def checkArgs(arg):
     else:
         raise ValueError('Unknown command line argument \'%s\'' % arg[0])
 
-for i in range(1,len(sys.argv)):
-    checkArgs(sys.argv[i])
+def main():
+    logging.info("### Starting new run ###")
+    logging.info("live is set to %s" % live)
+    logging.info("GANReportBot version %s" % version)
+    site = pywikibot.Site('en', 'wikipedia')
+    page = pywikibot.Page(site,'Wikipedia:Good article nominations')
+    nomPage = NomPage(page.text)
+    nomPage.parse()
 
-logging.info("### Starting new run ###")
-logging.info("live is set to %s" % live)
-logging.info("GANReportBot version %s" % version)
-site = pywikibot.Site('en', 'wikipedia')
-page = pywikibot.Page(site,'Wikipedia:Good article nominations')
-fullText= page.text
-fullText=fullText.split('\n')
+    #Compile regexes
+    ##Finds GAN entries and returns time stamp, title, and the following line
+    entRegex = re.compile(
+            r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+        )
+    sctRegex = re.compile(r'==+ (.*?) (==+)')
+    ##Finds the Wikipedia UTC Timestamp
+    datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
+    '''
+    \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/
+        Things below here have yet to be sorted into a class method
+    \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/
+    '''
+    #########################################################################
+    #   DATA FORMAT FOR ITEMS IN ARRAYS PRODUCED ABOVE
+    #   (entry,nomin,onHld,onRev,scnOp)
+    #       entryData[0] = Title of the nominated article
+    #       entryData[1] = Nomination number
+    #       entryData[2] = Section name
+    #       entryData[3] = Subsection name
+    #       entryData[4] = Timestamp
+    #       entryData[5] = Nominator's name
+    #       entryData[6] = The line following (not present in nomin or entry)
+    #########################################################################
 
-#Compile regexes
-##Finds GAN entries and returns time stamp, title, and the following line
-entRegex = re.compile(
-        r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
-    )
-sctRegex = re.compile(r'==+ (.*?) (==+)')
-##Finds the Wikipedia UTC Timestamp
-datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
+    #Get the date
+    today = date.today()
 
-entry   = []
-nomin   = []
-onRev   = []
-onHld   = []
-waitg   = []
-scnOp   = []
-badNoms = []
-toPrint = []
+    #Get backlog stats
+    noms = len(entry)
+    inac = len(nomin)
+    ohld = len(onHld)
+    orev = len(onRev)
+    scnd = len(scnOp)
 
-nomsBySection = {}
-subSectDict = {}
-nomsByNominator = {}
+    rIndex = 8 # index number for appended days since action
 
-'''
-FOR LOOP DOCUMENTATION
+    #Get all unreviewed nominations older than 30 days
+    oldestnoms = nomin
+    oldestnoms = dateActions(oldestnoms,4)
+    topTen = []
+    oldestnoms=sortByKey(oldestnoms,6)
+    for i in range(10):
+        topTen.append(oldestnoms[i])
 
-The following for loop goes line by line through the nomination page. It checks
-to see:
-    If the line is a section header:
-        If the line is a subsection header:
-            then it updates the subsection dictionaries
-        If it is not a subsection (i.e. only a section):
-            then it updates the section dictionary
-    Else if it is a GANEntry template:
-        stores the regex output in matches
-    Else if it is none of the above nor a GAReview it skips the line
-It then checks (see note below):
-    If it is a GAReview template:
-        then it sorts the associated nomination
-    Else it updates the entry data and adds it to entry and nomin
+    #Get all nominations older than 30 days
+    entry = dateActions(entry,4)
+    oThirty=[]
+    for item in entry:
+        if int(item[7]) >= 30:
+            oThirty.append(item)
+    oThirty=sortByKey(oThirty,7)
 
-NOTE: This runs backwards. GAReview templates only come /after/ a nomination
-so a nomination line will be added to entry and nomin and the next line, if it
-is not being worked on (ie no GAReview template) then it will overwrite the
-previous nomination data. But if there is a GAReview template it is /not/
-overwritten and is used to sort the previous nomination into the proper place
-and removes it from nomin (because it's on review)
-'''
-for line in fullText:
-    if '==' in line: #Checks to see if section
-        if '===' in line: #Checks to see if subsection
-            subSectName=re.search(sctRegex,line).group(1)
-            # array nums represent:
-            # [# of noms, # on hold, # on rev, # 2nd opinion]
-            nomsBySection[sectName][4][subSectName]=[0,0,0,0]
-            # keeps track of the indices of subsections in the data structure
-            subSectDict[subSectName]=len(nomsBySection[sectName])-1
-        else:
-            result=re.search(sctRegex,line)
-            sectName=result.group(1)
-            # array nums represent:
-            # [# of noms, # on hold, # on rev, # 2nd opinion]
-            nomsBySection[sectName]=[0,0,0,0,{}]
-            subSectName=None
-        continue
-    elif 'GANentry' in line:
-        matches=entRegex.search(line)
-        try:
-            username = getUsername(matches.group(3))
-        except:
-            logging.warning("Unable to get username for %s" % line)
-            try:
-                badNoms.append([matches.group(1),subSectName])
-            except Exception as e:
-                logging.error(e)
-            username = 'Unknown'
-        if username not in nomsByNominator:
-            nomsByNominator[username]=[]
-    elif 'GAReview' not in line:
-        continue
-    if 'GAReview' in line:
-        nomin.pop()
-        entryData.append(line)
-        if 'on hold' in line:
-            onHld.append(entryData)
-        elif '2nd opinion' in line:
-            scnOp.append(entryData)
-        else:
-            onRev.append(entryData)
-    else:
-        try:
-            entryData=[
-                        matches.group(1), # Title of the nominated article
-                        matches.group(2), # Nomination number
-                        sectName,         # Section name
-                        subSectName,      # Subsection name
-                        matches.group(4), # Timestamp
-                        username          # Nominator's name
-                      ]
-        except AttributeError as e:
-            logging.warning("Unable to create nom entry for %s" % line)
-            try:
-                badNoms.append([matches.group(1),subSectName])
-            except Exception as e:
-                logging.error(e)
-            continue
-        entry.append(entryData)
-        nomin.append(entryData)
-        if subSectName != None:
-            sec = subSectName
-        else:
-            sec = sectName
-        nomsByNominator[username].append([matches.group(1),sec])
-#########################################################################
-#   DATA FORMAT FOR ITEMS IN ARRAYS PRODUCED ABOVE
-#   (entry,nomin,onHld,onRev,scnOp)
-#       entryData[0] = Title of the nominated article
-#       entryData[1] = Nomination number
-#       entryData[2] = Section name
-#       entryData[3] = Subsection name
-#       entryData[4] = Timestamp
-#       entryData[5] = Nominator's name
-#       entryData[6] = The line following (not present in nomin or entry)
-#########################################################################
-
-#Get the date
-today = date.today()
-
-#Get backlog stats
-noms = len(entry)
-inac = len(nomin)
-ohld = len(onHld)
-orev = len(onRev)
-scnd = len(scnOp)
-
-rIndex = 8 # index number for appended days since action
-
-#Get all unreviewed nominations older than 30 days
-oldestnoms = nomin
-oldestnoms = dateActions(oldestnoms,4)
-topTen = []
-oldestnoms=sortByKey(oldestnoms,6)
-for i in range(10):
-    topTen.append(oldestnoms[i])
-
-#Get all nominations older than 30 days
-entry = dateActions(entry,4)
-oThirty=[]
-for item in entry:
-    if int(item[7]) >= 30:
-        oThirty.append(item)
-oThirty=sortByKey(oThirty,7)
-
-#Get the nominations ON HOLD 7 days or longer
-onHld=dateActions(onHld,rIndex-2)
-oldOnHold=[]
-for item in onHld:
-    if int(item[rIndex]) >= 7:
-        oldOnHold.append(item)
-oldOnHold=sortByKey(oldOnHold,rIndex)
-
-#Get the nominations ON REVIEW for 7 days or longer
-onRev=dateActions(onRev,rIndex-2)
-oldOnRev=[]
-
-for item in onRev:
-    try:
+    #Get the nominations ON HOLD 7 days or longer
+    onHld=dateActions(onHld,rIndex-2)
+    oldOnHold=[]
+    for item in onHld:
         if int(item[rIndex]) >= 7:
-            oldOnRev.append(item)
-    except TypeError as e:
-        logging.warning("No reviewer information for %s" % item[0])
-        badNoms.append(item)
+            oldOnHold.append(item)
+    oldOnHold=sortByKey(oldOnHold,rIndex)
 
-oldOnRev=sortByKey(oldOnRev,rIndex)
+    #Get the nominations ON REVIEW for 7 days or longer
+    onRev=dateActions(onRev,rIndex-2)
+    oldOnRev=[]
 
-#Get the nominations ON SECOND OPINION for 7 days or longer
-scnOp=dateActions(scnOp,rIndex-2)
-oldScnOp=[]
-for item in scnOp:
-    if int(item[rIndex]) >= 7:
-        oldScnOp.append(item)
-oldScnOp=sortByKey(oldScnOp,rIndex)
+    for item in onRev:
+        try:
+            if int(item[rIndex]) >= 7:
+                oldOnRev.append(item)
+        except TypeError as e:
+            logging.warning("No reviewer information for %s" % item[0])
+            badNoms.append(item)
 
-#Load report page (must be here because backlog report requires it be loaded)
-page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
-logging.info("Loaded report page")
+    oldOnRev=sortByKey(oldOnRev,rIndex)
 
-#Make Backlog report
-backlogReport = []
-for match in re.findall(r'(\d.*?\/>)',page.text):
-    backlogReport.append(match+'\n')
-curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
-    + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
-    + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
-    + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
-    + str(scnd)+'<br />\n'
-backlogReport.insert(0,curEntry)
-oldLine=backlogReport.pop()
+    #Get the nominations ON SECOND OPINION for 7 days or longer
+    scnOp=dateActions(scnOp,rIndex-2)
+    oldScnOp=[]
+    for item in scnOp:
+        if int(item[rIndex]) >= 7:
+            oldScnOp.append(item)
+    oldScnOp=sortByKey(oldScnOp,rIndex)
 
-#################
-# Make the Page
-#################
+    #Load report page (must be here because backlog report requires it be loaded)
+    page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
+    logging.info("Loaded report page")
 
-# Write Oldest nominations
-report = ['{{/top}}\n\n',
-          '== Oldest nominations ==\n',
-          ":''List of the oldest ten nominations that have had no activity " \
-          +"(placed on hold, under review or requesting a 2nd opinion)''\n",
+    #Make Backlog report
+    backlogReport = []
+    for match in re.findall(r'(\d.*?\/>)',page.text):
+        backlogReport.append(match+'\n')
+    curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
+        + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
+        + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
+        + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
+        + str(scnd)+'<br />\n'
+    backlogReport.insert(0,curEntry)
+    oldLine=backlogReport.pop()
+
+    #################
+    # Make the Page
+    #################
+
+    # Write Oldest nominations
+    report = ['{{/top}}\n\n',
+              '== Oldest nominations ==\n',
+              ":''List of the oldest ten nominations that have had no activity " \
+              +"(placed on hold, under review or requesting a 2nd opinion)''\n",
+        ]
+    report = appendUpdates(report,topTen,index=6,rev=False)
+    report+= ['\n',
+              '== Backlog report ==\n',]
+    # Write backlog report
+    for item in backlogReport:
+        report.append(item)
+    report.append(":''Previous daily backlogs can be viewed at the " \
+                  +"[[/Backlog archive|backlog archive]].''\n\n")
+    # Write the exceptions report
+    #   Write reviews on hold for over 7 days
+    report+= ['== Exceptions report ==\n',
+              '=== Holds over 7 days old ===\n']
+    report=appendUpdates(report,oldOnHold,rIndex)
+    # Write nominations marked on review for over 7 days
+    report+=['\n',
+            '=== Old reviews ===\n',
+            ":''Nominations that have been marked under review for 7 days or "\
+            +"longer.''\n"
+        ]
+    report=appendUpdates(report,oldOnRev,rIndex)
+    # Write requests for second opinion older than 7 days
+    report+=[
+        '\n',
+        '=== Old requests for 2nd opinion ===\n',
+        ":''Nominations that have been marked requesting a second opinion for 7 "\
+        +"days or longer.''\n"
     ]
-report = appendUpdates(report,topTen,index=6,rev=False)
-report+= ['\n',
-          '== Backlog report ==\n',]
-# Write backlog report
-for item in backlogReport:
-    report.append(item)
-report.append(":''Previous daily backlogs can be viewed at the " \
-              +"[[/Backlog archive|backlog archive]].''\n\n")
-# Write the exceptions report
-#   Write reviews on hold for over 7 days
-report+= ['== Exceptions report ==\n',
-          '=== Holds over 7 days old ===\n']
-report=appendUpdates(report,oldOnHold,rIndex)
-# Write nominations marked on review for over 7 days
-report+=['\n',
-        '=== Old reviews ===\n',
-        ":''Nominations that have been marked under review for 7 days or "\
-        +"longer.''\n"
+    report=appendUpdates(report,oldScnOp,rIndex)
+    #Write all nominations older than one month
+    report+=[
+        '\n',
+        '=== Old nominations ===\n',
+        ":''All nominations that were added 30 days ago or longer, regardless of "\
+        +"other activity.''\n"
     ]
-report=appendUpdates(report,oldOnRev,rIndex)
-# Write requests for second opinion older than 7 days
-report+=[
-    '\n',
-    '=== Old requests for 2nd opinion ===\n',
-    ":''Nominations that have been marked requesting a second opinion for 7 "\
-    +"days or longer.''\n"
-]
-report=appendUpdates(report,oldScnOp,rIndex)
-#Write all nominations older than one month
-report+=[
-    '\n',
-    '=== Old nominations ===\n',
-    ":''All nominations that were added 30 days ago or longer, regardless of "\
-    +"other activity.''\n"
-]
-for item in oThirty:
-    if item[4] != None: # If there is a subsection
-        j = 3           #   use it
-    else:               # otherwise
-        j = 2           #   use section name
-    # Add icons if nomination is on hold, review, etc
-    if any(item[0] in i for i in onHld):
-        text = '# [[Image:Symbol wait.svg|15px|On Hold]] '\
-                +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex-1])+"''' days)\n"
-    elif any(item[0] in i for i in onRev):
-        text = '# [[Image:Searchtool.svg|15px|Under Review]] '\
-                +sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex-1])+"''' days)\n"
-    elif any(item[0] in i for i in scnOp):
-        text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
-                +' '+sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex-1])+"''' days)\n"
-    else:
-        text = '# '+sectionLink(item[j],item[0])+" ('''"\
-                +str(item[rIndex-1])+"''' days)\n"
-    report.append(text)
-
-# Malformed Noms
-report.append('=== Malformed nominations ===\n')
-if len(badNoms) < 1:
-    report.append('None\n')
-else:
-    if len(badNoms) > 1:
-        report.append(":''There are currently "+str(len(badNoms))\
-                      +" malformed nominations''\n")
-    elif len(badNoms) == 1:
-        report.append(":''There is currently 1 malformed nomination''\n")
-    for item in badNoms:
-        text= '# '+sectionLink(item[1],item[0])+"\n"
+    for item in oThirty:
+        if item[4] != None: # If there is a subsection
+            j = 3           #   use it
+        else:               # otherwise
+            j = 2           #   use section name
+        # Add icons if nomination is on hold, review, etc
+        if any(item[0] in i for i in onHld):
+            text = '# [[Image:Symbol wait.svg|15px|On Hold]] '\
+                    +sectionLink(item[j],item[0])+" ('''"\
+                    +str(item[rIndex-1])+"''' days)\n"
+        elif any(item[0] in i for i in onRev):
+            text = '# [[Image:Searchtool.svg|15px|Under Review]] '\
+                    +sectionLink(item[j],item[0])+" ('''"\
+                    +str(item[rIndex-1])+"''' days)\n"
+        elif any(item[0] in i for i in scnOp):
+            text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
+                    +' '+sectionLink(item[j],item[0])+" ('''"\
+                    +str(item[rIndex-1])+"''' days)\n"
+        else:
+            text = '# '+sectionLink(item[j],item[0])+" ('''"\
+                    +str(item[rIndex-1])+"''' days)\n"
         report.append(text)
 
-# Counts and outputs nominators with multiple nominations
-report.append('=== Nominators with multiple nominations ===\n')
-multipleNomsOut = []
-mnOutput = []
-for user in nomsByNominator:
-    if len(nomsByNominator[user]) > 2:
-        multipleNomsOut.append([
-            user,
-            len(nomsByNominator[user]),nomsByNominator[user]
-        ])
-        line = ';'+user+' ('+str(len(nomsByNominator[user]))+')\n'
-nomsSort = sortByKey(multipleNomsOut,1)
-for item in nomsSort:
-    line = ';'+item[0]+' ('+str(item[1])+')'
-    mnOutput.append(line)
-    line = ':'
-    counter=0
-    for mnNom in item[2]:
-        if counter != 0:
-            line+=', '
-        line += sectionLink(mnNom[1],mnNom[0])
-        counter+=1
-    line+='\n'
-    mnOutput.append(line)
-report += mnOutput
-
-# Counts up all the noms, holds, reviews, and 2nd opinions in each section and
-#   iterates the counter in the nomsBySection datastructure
-for item in entry:
-    if item[2] in nomsBySection and item[3] == None:
-        nomsBySection[item[2]][0]+=1
-        if any(item[0] in i for i in onHld):
-            nomsBySection[item[2]][1]+=1
-        elif any(item[0] in i for i in onRev):
-            nomsBySection[item[2]][2]+=1
-        elif any(item[0] in i for i in scnOp):
-            nomsBySection[item[2]][1]+=1
-    elif item[3] in subSectDict:
-        index=4
-        nomsBySection[item[2]][index][item[3]][0]+=1
-        if any(item[0] in i for i in onHld):
-            nomsBySection[item[2]][index][item[3]][1]+=1
-        elif any(item[0] in i for i in onRev):
-            nomsBySection[item[2]][index][item[3]][2]+=1
-        elif any(item[0] in i for i in scnOp):
-            nomsBySection[item[2]][index][item[3]][3]+=1
+    # Malformed Noms
+    report.append('=== Malformed nominations ===\n')
+    if len(badNoms) < 1:
+        report.append('None\n')
     else:
-        print(item)
-        raise TypeError('Nominations must have a section or subsection')
+        if len(badNoms) > 1:
+            report.append(":''There are currently "+str(len(badNoms))\
+                          +" malformed nominations''\n")
+        elif len(badNoms) == 1:
+            report.append(":''There is currently 1 malformed nomination''\n")
+        for item in badNoms:
+            text= '# '+sectionLink(item[1],item[0])+"\n"
+            report.append(text)
 
-# Creates the summary report by iterating over the nomsBySection data structure
-sectionNameList=[]
-subsectionDict={}
-for key in nomsBySection:
-    sectionNameList.append(key)
-    subsectionList=[]
-    for subkey in nomsBySection[key][4]:
-        subsectionList.append(subkey)
-    if subsectionList != []:
-        subsectionList.sort()
-    subsectionDict[key]=subsectionList
-summary = []
-sectionNameList.sort()
-for section in sectionNameList:
-    summary.append(updateSummary(section))
-    if subsectionDict[section] != [] :
-        for subsection in subsectionDict[section]:
-            summary.append(updateSummary(section,subsection))
-# Writes the summary report
-report.append('== Summary ==\n')
-report+=summary
+    # Counts and outputs nominators with multiple nominations
+    report.append('=== Nominators with multiple nominations ===\n')
+    multipleNomsOut = []
+    mnOutput = []
+    for user in nomsByNominator:
+        if len(nomsByNominator[user]) > 2:
+            multipleNomsOut.append([
+                user,
+                len(nomsByNominator[user]),nomsByNominator[user]
+            ])
+            line = ';'+user+' ('+str(len(nomsByNominator[user]))+')\n'
+    nomsSort = sortByKey(multipleNomsOut,1)
+    for item in nomsSort:
+        line = ';'+item[0]+' ('+str(item[1])+')'
+        mnOutput.append(line)
+        line = ':'
+        counter=0
+        for mnNom in item[2]:
+            if counter != 0:
+                line+=', '
+            line += sectionLink(mnNom[1],mnNom[0])
+            counter+=1
+        line+='\n'
+        mnOutput.append(line)
+    report += mnOutput
 
-# A relic of the old way, in memoriam WugBot-v0.0
-toPrint=report
-# Sign it
-toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
-    +' WugBot v'+version+' -->\n')
+    # Counts up all the noms, holds, reviews, and 2nd opinions in each section and
+    #   iterates the counter in the nomsBySection datastructure
+    for item in entry:
+        if item[2] in nomsBySection and item[3] == None:
+            nomsBySection[item[2]][0]+=1
+            if any(item[0] in i for i in onHld):
+                nomsBySection[item[2]][1]+=1
+            elif any(item[0] in i for i in onRev):
+                nomsBySection[item[2]][2]+=1
+            elif any(item[0] in i for i in scnOp):
+                nomsBySection[item[2]][1]+=1
+        elif item[3] in subSectDict:
+            index=4
+            nomsBySection[item[2]][index][item[3]][0]+=1
+            if any(item[0] in i for i in onHld):
+                nomsBySection[item[2]][index][item[3]][1]+=1
+            elif any(item[0] in i for i in onRev):
+                nomsBySection[item[2]][index][item[3]][2]+=1
+            elif any(item[0] in i for i in scnOp):
+                nomsBySection[item[2]][index][item[3]][3]+=1
+        else:
+            print(item)
+            raise TypeError('Nominations must have a section or subsection')
 
-# Determine if the bot should write to a live page or the test page. Defaults to
-#     test page. Value of -1 tests backlog update (not standard because the file
-#     size is very big).
-if live == 2:
-    pass
-elif live == 1:
-    logging.info("Writing to real pages")
-    page.text=''.join(toPrint)
-    page.save('Updating exceptions report, WugBot v'+version)
-    page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
-                                +'Backlog archive')
-    page.text+=oldLine+'\n'
-    page.save('Update of GAN report backlog, WugBot v'+version)
-else:
-    logging.info("Writing to test page")
-    page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
-    page.text=''.join(toPrint)
-    page.save('Testing expanded reporting')
-    if live==-1:
-        logging.info("Writing to backlog archive test page")
-        page = pywikibot.Page(site,
-            'User:Wugapodes/GANReportBotTest/Backlog archive')
-        testText=page.text
-        page.text=testText
-        page.save('Testing backlog report updating')
+    # Creates the summary report by iterating over the nomsBySection data structure
+    sectionNameList=[]
+    subsectionDict={}
+    for key in nomsBySection:
+        sectionNameList.append(key)
+        subsectionList=[]
+        for subkey in nomsBySection[key][4]:
+            subsectionList.append(subkey)
+        if subsectionList != []:
+            subsectionList.sort()
+        subsectionDict[key]=subsectionList
+    summary = []
+    sectionNameList.sort()
+    for section in sectionNameList:
+        summary.append(updateSummary(section))
+        if subsectionDict[section] != [] :
+            for subsection in subsectionDict[section]:
+                summary.append(updateSummary(section,subsection))
+    # Writes the summary report
+    report.append('== Summary ==\n')
+    report+=summary
 
-# Update the transcluded list of the 5 oldest noms
-links = []
-for ent in topTen:
-    if ent[3] == None:
-        i = 2
+    # A relic of the old way, in memoriam WugBot-v0.0
+    toPrint=report
+    # Sign it
+    toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
+        +' WugBot v'+version+' -->\n')
+
+    # Determine if the bot should write to a live page or the test page. Defaults to
+    #     test page. Value of -1 tests backlog update (not standard because the file
+    #     size is very big).
+    if live == 2:
+        pass
+    elif live == 1:
+        logging.info("Writing to real pages")
+        page.text=''.join(toPrint)
+        page.save('Updating exceptions report, WugBot v'+version)
+        page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
+                                    +'Backlog archive')
+        page.text+=oldLine+'\n'
+        page.save('Update of GAN report backlog, WugBot v'+version)
     else:
-        i = 3
-    links.append(sectionLink(ent[i],ent[0]))
-pText = '\n&bull; '.join(links[:5])
-pText+='\n<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n&bull; '
-pText+= '\n&bull; '.join(links[5:])
-pText+= '\n-->'
-if live == 1:
-    page = pywikibot.Page(site,'Wikipedia:Good article nominations/backlog/items')
-    page.text = pText
-    page.save('Updating list of oldest noms. WugBot v%s' % version)
-else:
-    page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/items')
-    page.text = pText
-    page.save('Testing WugBot v%s' % version)
+        logging.info("Writing to test page")
+        page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
+        page.text=''.join(toPrint)
+        page.save('Testing expanded reporting')
+        if live==-1:
+            logging.info("Writing to backlog archive test page")
+            page = pywikibot.Page(site,
+                'User:Wugapodes/GANReportBotTest/Backlog archive')
+            testText=page.text
+            page.text=testText
+            page.save('Testing backlog report updating')
 
-print(wikiTimeStamp())
-logging.info("Finished")
+    # Update the transcluded list of the 5 oldest noms
+    links = []
+    for ent in topTen:
+        if ent[3] == None:
+            i = 2
+        else:
+            i = 3
+        links.append(sectionLink(ent[i],ent[0]))
+    pText = '\n&bull; '.join(links[:5])
+    pText+='\n<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n&bull; '
+    pText+= '\n&bull; '.join(links[5:])
+    pText+= '\n-->'
+    if live == 1:
+        page = pywikibot.Page(site,'Wikipedia:Good article nominations/backlog/items')
+        page.text = pText
+        page.save('Updating list of oldest noms. WugBot v%s' % version)
+    else:
+        page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/items')
+        page.text = pText
+        page.save('Testing WugBot v%s' % version)
+
+    print(wikiTimeStamp())
+    logging.info("Finished")
+
+if __name__ == "__main__":
+    for i in range(1,len(sys.argv)):
+        checkArgs(sys.argv[i])
