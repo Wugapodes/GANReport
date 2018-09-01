@@ -3,6 +3,8 @@
 import pywikibot
 import re
 from datetime import date
+from datetime import timedelta
+from datetime import datetime as dt
 import datetime
 import logging
 import sys
@@ -48,8 +50,14 @@ class NomPage:
     def __init__(self,text):
         self.raw_text = text
         self.text = text.split("\n")
-        self.badNoms = []
         self.section = []
+        self.stats = {
+            'noms' = 0,
+            'inac' = 0,
+            'ohld' = 0,
+            'orev' = 0,
+            'scnd' = 0,
+        }
 
     def parse(text=None):
         if text == None:
@@ -68,7 +76,7 @@ class NomPage:
             elif 'GANentry' in line:  # If line is a GA nom...
                 c_sub = c_sec.subsections[-1]
                 matches=entRegex.search(line)
-                entry = Entry(matches,line)
+                entry = Entry(matches,line,c_sub.name)
                 c_sub.entries.append(entry)
             elif 'GAReview' in line:  # If a review template...
                 c_entry = c_sec.subsections[-1].entries[-1]
@@ -79,11 +87,151 @@ class NomPage:
                 else: # Otherwise it's under review.
                     c_entry.status = 'R'
 
+    def organize_noms(self):
+        noms = []
+        badnoms = []
+        for sec in self.section:
+            for subsec in sec.subsections:
+                for entry in subsec.entries:
+                    if not entry.bad:
+                        noms.append(entry)
+                    else:
+                        badnoms.append(entry)
+        noms.sort(key=lambda x: x.timestamp)
+        unrev = [x for x in noms if x.status == None]
+        unrev.sort(key=lambda x: x.timestamp)
+        self.stats['noms'] = len(noms)
+        self.stats['inac'] = len(unrev)
+        self.stats['ohld'] = len([x for x in noms if x.status == 'H'])
+        self.stats['orev'] = len([x for x in noms if x.status == 'R'])
+        self.stats['scnd'] = len([x for x in noms if x.status == '2'])
+        cut = dt.utcnow() - timedelta(30)
+        overThirty = [x for x in noms if x.timestamp < cut]
+        oldestnoms = [x for x in unrev if x.timestamp < cut]
+        oldestnoms.sort(key=lambda x: x.timestamp)
+        oldestTen = oldestnoms[:10]
+        cut = dt.utcnow() - timedelta(7)
+        oldHolds = [x for x in noms if x.timestamp < cut and x.status == 'H']
+        oldRevs = [x for x in noms if x.timestamp < cut and x.status == 'R']
+        oldScnd = [x for x in noms if x.timestamp < cut and x.status == '2']
+        self.nominations = noms  # All nominations regardless of activity.
+        self.unreviewed = unrev  # Nominations not under review.
+        self.overThirty = overThirty # All nominations older than 30 days
+        self.oldestTen = oldestTen # The ten oldest unreviewed nomination
+        self.oldUnreviewed = oldestnoms # Unreviewed nominations over 30 days.
+        self.oldOnHold = oldHolds
+        self.oldReviews = oldRevs
+        self.oldSecondOp = oldScnd
+        self.badNoms = badnoms
+
+    def write_(self):
+        report = """
+        {{/top}}
+
+        """
+        oldestTen = self.print_oldest_ten()
+        report = self.print_report()
+        """
+        == Exceptions report ==
+        """
+        oldHolds = self.print_oldHolds()
+        oldRevs = self.print_oldReviews()
+        oldScnd = self.print_oldSecond()
+        oldest = self.print_oldest()
+        badnoms = self.print_badnoms()
+
+
+    def print_oldest_ten(self):
+        oldest = self.oldestTen
+        print_list = [
+            '== Oldest nominations ==',
+            "''List of the oldest ten nominations that have had no activity ",
+            "(placed on hold, under review or requesting a 2nd opinion)''"
+            ] + [x.link() for x in oldest]
+        return('\n'.join(print_list))
+
+    def print_report(self):
+        ts = wikiTimeStamp()
+        noms = self.stats['noms']
+        inac = self.stats['inac']
+        ohld = self.stats['ohld']
+        orev = self.stats['orev']
+        scnd = self.stats['scnd']
+        newline = ts+' &ndash; '+str(noms)+' nominations outstanding; ' \
+            + str(inac) + ' not reviewed; ' \
+            + '[[Image:Symbol wait.svg|15px|On Hold]] x ' + str(ohld) + '; '\
+            +'[[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
+            + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion ' \
+            + 'Requested]] x ' + str(scnd)
+        with open('backlog_report.txt',r) as f:
+            backlog = [line.strip() for line in f]
+        backlog.pop().insert(0,newline)
+        backlog = [
+            '== Backlog report ==',
+            "\n".join(backlog),
+            ":''Previous daily backlogs can be viewed at the " + \
+            "[[/Backlog archive|backlog archive]].''"
+        ]
+        with open('backlog_report.txt',w) as f:
+            f.write(backlog[1])
+        return('\n'.join(backlog))
+
+    def print_oldHolds(self):
+        print_list = [
+            '=== Holds over 7 days old ==='
+        ] + [x.link() for x in self.oldOnHold]
+        return('\n'.join(print_list))
+
+    def print_oldReviews(self):
+        print_list = [
+            '=== Old reviews ===',
+            ":''Nominations that have been marked under review for 7 days or "\
+            +"longer.''",
+        ] + [x.link() for x in self.oldOnRev]
+        return('\n'.join(print_list))
+
+    def print_oldSecond(self):
+        print_list = [
+            '=== Old requests for 2nd opinion ===',
+            ":''Nominations that have been marked requesting a second opinion" \
+            +" for 7 days or longer.''"
+        ] + [x.link() for x in self.oldSecondOp]
+        return('\n'.join(print_list))
+
+    def print_oldest(self):
+        print_list = [
+            '=== Old nominations ===\n',
+            ":''All nominations that were added 30 days ago or longer, "\
+            +"regardless of other activity.''",
+        ] + [x.link(image=True) for x in self.overThirty]
+        return('\n'.join(print_list))
+
+    def print_badnoms(self):
+        n_bad = len(self.badNoms)
+        if n_bad < 1:
+            subhead = "None"
+        elif n_bad > 1:
+            subhead = ":''There are currently "+str(n_bad)\
+            +" malformed nominations.''"
+        else:
+            subhead = ":''There is currently 1 malformed nomination.''"
+        print_list = [
+            '=== Malformed nominations ===',
+            subhead,
+        ] + [x.badlink for x in self.badNoms]
+        return('\n'.join(print_list))
+
+
 class Section:
     sctRegex = re.compile(r'==+ (.*?) (==+)')
     def __init__(self,name):
         self.name = name
         self.subsections = []
+
+    def link(self):
+        name = self.name
+        link = '[[Wikipedia:Good article nominations#'+name+'|'+name+']]'
+        return(link)
 
 class SubSection(Section):
     def __init__(self, name, section):
@@ -92,59 +240,122 @@ class SubSection(Section):
         self.section = section
 
 class Entry:
-    def __init__(self,line,matches):
+    def __init__(self,line,matches,subsection):
         self.text = line
         self._matches = matches
         self.status = None
-
-        try:
-            username = getUsername(matches.group(3))
-        except:
-            logging.warning("Unable to get username for %s" % line)
-            try:
-                self.badNoms.append([matches.group(1),subSectName])
-            except Exception as e:
-                logging.debug(e)
-                logging.error("Could not add %s to the badNoms list." % line)
-            username = 'Unknown'
-        self.nominator = username
+        self.subsection = subsection
+        self.bad = False
+        self.badlink = None
+        subsSectName = subsection.name
 
         try:
             title = matches.group(1)
         except:
             logging.warning("Unable to get title for %s" % line)
             try:
-                self.badNoms.append([matches.group(1),subSectName])
+                self.bad = True
+                logging.debug(print([matches.group(1),subSectName]))
             except Exception as e:
-                logging.debug(e)
-                logging.error("Could not add %s to the badNoms list." % line)
-            title = 'Unknown'
+                logging.warning(e)
+                logging.warning("Could not log debug info.")
+            title = None
         self.title = title
+
+        try:
+            t = matches.group(4)
+            time = wiki2datetime(t)
+            l = True
+        except:
+            logging.warning("Unable to get timestamp for %s" % line)
+            try:
+                self.bad = True
+                logging.debug(print([matches.group(1),subSectName]))
+                if title:
+                    self.badlink = self.link(length=False)
+                except Exception as e:
+                    logging.warning(e)
+                    logging.warning("Could not log debug info.")
+                    time = None
+                    l = False
+        self.timestamp = time
+
+        try:
+            username = self.getUsername(matches.group(3))
+        except:
+            logging.warning("Unable to get username for %s" % line)
+            try:
+                self.bad = True
+                logging.debug(print([matches.group(1),subSectName]))
+                if title:
+                    self.badlink = self.link(length=l)
+            except Exception as e:
+                logging.warning(e)
+                logging.warning("Could not log debug info.")
+            username = None
+        self.nominator = username
 
         try:
             review_num = matches.group(2))
         except:
             logging.warning("Unable to get review number for %s" % line)
             try:
-                self.badNoms.append([matches.group(1),subSectName])
+                self.bad = True
+                logging.debug(print([matches.group(1),subSectName]))
+                if title:
+                    self.badlink = self.link(length=l)
+                elif username:
+                    self.badlink = self.link(length=l, text=username)
             except Exception as e:
-                logging.debug(e)
-                logging.error("Could not add %s to the badNoms list." % line)
+                logging.warning(e)
+                logging.warning("Could not log debug info.")
             review_num = 1
         self.number = review_num
 
-        try:
-            time = matches.group(4))
-        except:
-            logging.warning("Unable to get timestamp for %s" % line)
-            try:
-                self.badNoms.append([matches.group(1),subSectName])
-            except Exception as e:
-                logging.debug(e)
-                logging.error("Could not add %s to the badNoms list." % line)
-            time = 'Unknown'
-        self.timestamp = time
 
+    def getUsername(self, text):
+        if '[[User' in line:
+            name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
+            return(name)
+        else:
+            raise ValueError('Could not get username.')
+
+    def link(self, image = False, length = True, text = None):
+        if text == None:
+            link = str(self)
+        else:
+            sec = self.subsection
+            link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
+        if length:
+            days = str((dt.utcnow() - self.timestamp).days)
+        status = self.status
+        if status == None or not image:
+            img = ''
+        elif status == 'H':
+            img = '[[Image:Symbol wait.svg|15px|On Hold]] '
+        elif status == 'R':
+            img = '[[Image:Searchtool.svg|15px|Under Review]] '
+        elif status == '2':
+            img = '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] '
+        string = '# '+img+link
+        if length:
+            string = string+" ('''"+days+"''' days)"
+        return(string)
+
+    def __str__(self):
+        sec = self.subsection
+        n = self.title
+        return('[[Wikipedia:Good article nominations#'+sec+'|'+n+']]')
+
+
+def wiki2datetime(wikistamp):
+    time, date = wikistamp.split(', ')
+    hour, minute = time.split(':')
+    day, month, year = date.split(' ')
+    month = monthConvert(month)
+    dtVals = [int(year), int(month), int(day), int(hour), int(minute)]
+    dt = datetime.datetime(*dtVals)
+    return(dt)
 
 def monthConvert(name):
     '''
@@ -282,13 +493,6 @@ def sectionLink(section,title):
     text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
 
-def getUsername(text):
-    if '[[User' in line:
-        name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
-        return(name)
-    else:
-        raise ValueError('Could not get username.')
-
 def startLogging(loglevel):
     global logging
     numeric_level = getattr(logging, loglevel.upper(), None)
@@ -318,6 +522,8 @@ def main():
 
     ##Finds the Wikipedia UTC Timestamp
     datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
+    nomPage.organize_noms()
+    nomPage.write()
     '''
     \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/
         Things below here have yet to be sorted into a class method
@@ -334,162 +540,6 @@ def main():
     #       entryData[5] = Nominator's name
     #       entryData[6] = The line following (not present in nomin or entry)
     #########################################################################
-
-    #Get the date
-    today = date.today()
-
-    #Get backlog stats
-    noms = len(entry)
-    inac = len(nomin)
-    ohld = len(onHld)
-    orev = len(onRev)
-    scnd = len(scnOp)
-
-    rIndex = 8 # index number for appended days since action
-
-    #Get all unreviewed nominations older than 30 days
-    oldestnoms = nomin
-    oldestnoms = dateActions(oldestnoms,4)
-    topTen = []
-    oldestnoms=sortByKey(oldestnoms,6)
-    for i in range(10):
-        topTen.append(oldestnoms[i])
-
-    #Get all nominations older than 30 days
-    entry = dateActions(entry,4)
-    oThirty=[]
-    for item in entry:
-        if int(item[7]) >= 30:
-            oThirty.append(item)
-    oThirty=sortByKey(oThirty,7)
-
-    #Get the nominations ON HOLD 7 days or longer
-    onHld=dateActions(onHld,rIndex-2)
-    oldOnHold=[]
-    for item in onHld:
-        if int(item[rIndex]) >= 7:
-            oldOnHold.append(item)
-    oldOnHold=sortByKey(oldOnHold,rIndex)
-
-    #Get the nominations ON REVIEW for 7 days or longer
-    onRev=dateActions(onRev,rIndex-2)
-    oldOnRev=[]
-
-    for item in onRev:
-        try:
-            if int(item[rIndex]) >= 7:
-                oldOnRev.append(item)
-        except TypeError as e:
-            logging.warning("No reviewer information for %s" % item[0])
-            badNoms.append(item)
-
-    oldOnRev=sortByKey(oldOnRev,rIndex)
-
-    #Get the nominations ON SECOND OPINION for 7 days or longer
-    scnOp=dateActions(scnOp,rIndex-2)
-    oldScnOp=[]
-    for item in scnOp:
-        if int(item[rIndex]) >= 7:
-            oldScnOp.append(item)
-    oldScnOp=sortByKey(oldScnOp,rIndex)
-
-    #Load report page (must be here because backlog report requires it be loaded)
-    page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
-    logging.info("Loaded report page")
-
-    #Make Backlog report
-    backlogReport = []
-    for match in re.findall(r'(\d.*?\/>)',page.text):
-        backlogReport.append(match+'\n')
-    curEntry = wikiTimeStamp()+' &ndash; '+str(noms)+' nominations outstanding; ' \
-        + str(inac)+' not reviewed; [[Image:Symbol wait.svg|15px|On Hold]] x ' \
-        + str(ohld)+'; [[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
-        + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] x ' \
-        + str(scnd)+'<br />\n'
-    backlogReport.insert(0,curEntry)
-    oldLine=backlogReport.pop()
-
-    #################
-    # Make the Page
-    #################
-
-    # Write Oldest nominations
-    report = ['{{/top}}\n\n',
-              '== Oldest nominations ==\n',
-              ":''List of the oldest ten nominations that have had no activity " \
-              +"(placed on hold, under review or requesting a 2nd opinion)''\n",
-        ]
-    report = appendUpdates(report,topTen,index=6,rev=False)
-    report+= ['\n',
-              '== Backlog report ==\n',]
-    # Write backlog report
-    for item in backlogReport:
-        report.append(item)
-    report.append(":''Previous daily backlogs can be viewed at the " \
-                  +"[[/Backlog archive|backlog archive]].''\n\n")
-    # Write the exceptions report
-    #   Write reviews on hold for over 7 days
-    report+= ['== Exceptions report ==\n',
-              '=== Holds over 7 days old ===\n']
-    report=appendUpdates(report,oldOnHold,rIndex)
-    # Write nominations marked on review for over 7 days
-    report+=['\n',
-            '=== Old reviews ===\n',
-            ":''Nominations that have been marked under review for 7 days or "\
-            +"longer.''\n"
-        ]
-    report=appendUpdates(report,oldOnRev,rIndex)
-    # Write requests for second opinion older than 7 days
-    report+=[
-        '\n',
-        '=== Old requests for 2nd opinion ===\n',
-        ":''Nominations that have been marked requesting a second opinion for 7 "\
-        +"days or longer.''\n"
-    ]
-    report=appendUpdates(report,oldScnOp,rIndex)
-    #Write all nominations older than one month
-    report+=[
-        '\n',
-        '=== Old nominations ===\n',
-        ":''All nominations that were added 30 days ago or longer, regardless of "\
-        +"other activity.''\n"
-    ]
-    for item in oThirty:
-        if item[4] != None: # If there is a subsection
-            j = 3           #   use it
-        else:               # otherwise
-            j = 2           #   use section name
-        # Add icons if nomination is on hold, review, etc
-        if any(item[0] in i for i in onHld):
-            text = '# [[Image:Symbol wait.svg|15px|On Hold]] '\
-                    +sectionLink(item[j],item[0])+" ('''"\
-                    +str(item[rIndex-1])+"''' days)\n"
-        elif any(item[0] in i for i in onRev):
-            text = '# [[Image:Searchtool.svg|15px|Under Review]] '\
-                    +sectionLink(item[j],item[0])+" ('''"\
-                    +str(item[rIndex-1])+"''' days)\n"
-        elif any(item[0] in i for i in scnOp):
-            text = '# [[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
-                    +' '+sectionLink(item[j],item[0])+" ('''"\
-                    +str(item[rIndex-1])+"''' days)\n"
-        else:
-            text = '# '+sectionLink(item[j],item[0])+" ('''"\
-                    +str(item[rIndex-1])+"''' days)\n"
-        report.append(text)
-
-    # Malformed Noms
-    report.append('=== Malformed nominations ===\n')
-    if len(badNoms) < 1:
-        report.append('None\n')
-    else:
-        if len(badNoms) > 1:
-            report.append(":''There are currently "+str(len(badNoms))\
-                          +" malformed nominations''\n")
-        elif len(badNoms) == 1:
-            report.append(":''There is currently 1 malformed nomination''\n")
-        for item in badNoms:
-            text= '# '+sectionLink(item[1],item[0])+"\n"
-            report.append(text)
 
     # Counts and outputs nominators with multiple nominations
     report.append('=== Nominators with multiple nominations ===\n')
