@@ -59,7 +59,7 @@ class NomPage:
             'scnd' = 0,
         }
 
-    def parse(text=None):
+    def parse(text=None, organize=True, noms=True):
         if text == None:
             text = self.text
         for line in text:
@@ -86,6 +86,14 @@ class NomPage:
                     c_entry.status = '2'
                 else: # Otherwise it's under review.
                     c_entry.status = 'R'
+        if organize:
+            self.organize_noms()
+        if noms:
+            try:
+                self.nominator_stats()
+            except AttributeError as e:
+                logging.error("Cannot get nominator stats without" \
+                                + "organizing nominations")
 
     def organize_noms(self):
         noms = []
@@ -124,6 +132,18 @@ class NomPage:
         self.oldSecondOp = oldScnd
         self.badNoms = badnoms
 
+    def nominator_stats():
+        """Assumes self.organize_noms() has already been run."""
+        nominations = self.nominations
+        nominators = {}
+        nom_list = []
+        for entry in nominations:
+            nom = entry.nominator
+            if nom not in nominators:
+                nominators[nom] = Nominator(nom)
+            nominations[nom].add(entry)
+        self.nominators = nominators
+
     def write_(self):
         report = """
         {{/top}}
@@ -139,7 +159,11 @@ class NomPage:
         oldScnd = self.print_oldSecond()
         oldest = self.print_oldest()
         badnoms = self.print_badnoms()
-
+        multinoms = self.print_noms()
+        """
+        == Summary ==
+        """
+        summary = self.print_section_summary()
 
     def print_oldest_ten(self):
         oldest = self.oldestTen
@@ -221,6 +245,26 @@ class NomPage:
         ] + [x.badlink for x in self.badNoms]
         return('\n'.join(print_list))
 
+    def print_noms(self,cutoff=3):
+        nominators = self.nominators
+        nom_list = []
+        for nm in nominators:
+            nom = nominators[nm]
+            nom_list.append(nom.print_noms())
+        head = "=== Nominators with multiple nominations ==="
+        print_list = [
+            head,
+            "\n".join(nom_list)
+        ]
+        return("\n".join(print_list))
+
+    def print_section_summary(self):
+        sections = self.section
+        print_list = []
+        for sec in sections:
+            print_list.append(sec.summary())
+
+
 
 class Section:
     sctRegex = re.compile(r'==+ (.*?) (==+)')
@@ -228,10 +272,24 @@ class Section:
         self.name = name
         self.subsections = []
 
-    def link(self):
-        name = self.name
-        link = '[[Wikipedia:Good article nominations#'+name+'|'+name+']]'
-        return(link)
+    def link(self, image = False, text = None):
+        """I may be wrong, but I'm pretty sure there's no reason for There
+        to be a nomination in a super section, so it just defaults to zero.
+        I should probably ask someone about that though.
+        """
+        if text == None:
+            link = str(self)
+        else:
+            sec = self.name
+            link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
+        number = 0
+        string = link + " " + str(number)
+        return(string)
+
+    def __str__(self):
+        s = self.name
+        return('[[Wikipedia:Good article nominations#' + s + '|' + s + ']]')
+
 
 class SubSection(Section):
     def __init__(self, name, section):
@@ -239,8 +297,50 @@ class SubSection(Section):
         self.entries = []
         self.section = section
 
+    def link(self, image = False, text = None):
+        ####  This still needs modification so it actually creates the format
+        ####    seen on the report pages.
+        if text == None:
+            link = str(self)
+        else:
+            sec = self.subsection
+            link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
+        if length:
+            days = str((dt.utcnow() - self.timestamp).days)
+        status = self.status
+        if status == None or not image:
+            img = ''
+        elif status == 'H':
+            img = '[[Image:Symbol wait.svg|15px|On Hold]] '
+        elif status == 'R':
+            img = '[[Image:Searchtool.svg|15px|Under Review]] '
+        elif status == '2':
+            img = '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] '
+        string = '# '+img+link
+        if length:
+            string = string+" ('''"+days+"''' days)"
+        return(string)
+
+    def __str__(self):
+        s = self.name
+        return('[[Wikipedia:Good article nominations#' + s + '|' + s + ']]')
+
+
 class Entry:
     def __init__(self,line,matches,subsection):
+        """
+        Attributes:
+
+        self.text, str
+        self.status, bool or None
+        self.subsection, userinput
+        self.bad, bool
+        self.badlink, str or None
+        self.title, str or None
+        self.timestamp, datetime.datetime instance or None
+        self.nominator, str
+        self.number, int
+        """
         self.text = line
         self._matches = matches
         self.status = None
@@ -312,7 +412,6 @@ class Entry:
             review_num = 1
         self.number = review_num
 
-
     def getUsername(self, text):
         if '[[User' in line:
             name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
@@ -347,6 +446,24 @@ class Entry:
         n = self.title
         return('[[Wikipedia:Good article nominations#'+sec+'|'+n+']]')
 
+
+class Nominator():
+    def __init__(self, name):
+        self.username = name
+        self.entries = []
+
+    def add(self,content,index=0):
+        self.entries.insert(index,content)
+
+    def print_noms(self):
+        n_noms = 0
+        link_list = []
+        for entry in self.entries:
+            n_noms += 1
+            link_list.append(str(entry))
+        head = ";" + self.username + " " + str(n_noms)
+        nomlist = ":" + ", ".join(link_list)
+        return("\n".join([head,nomlist])
 
 def wiki2datetime(wikistamp):
     time, date = wikistamp.split(', ')
@@ -522,7 +639,6 @@ def main():
 
     ##Finds the Wikipedia UTC Timestamp
     datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
-    nomPage.organize_noms()
     nomPage.write()
     '''
     \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/
@@ -541,31 +657,6 @@ def main():
     #       entryData[6] = The line following (not present in nomin or entry)
     #########################################################################
 
-    # Counts and outputs nominators with multiple nominations
-    report.append('=== Nominators with multiple nominations ===\n')
-    multipleNomsOut = []
-    mnOutput = []
-    for user in nomsByNominator:
-        if len(nomsByNominator[user]) > 2:
-            multipleNomsOut.append([
-                user,
-                len(nomsByNominator[user]),nomsByNominator[user]
-            ])
-            line = ';'+user+' ('+str(len(nomsByNominator[user]))+')\n'
-    nomsSort = sortByKey(multipleNomsOut,1)
-    for item in nomsSort:
-        line = ';'+item[0]+' ('+str(item[1])+')'
-        mnOutput.append(line)
-        line = ':'
-        counter=0
-        for mnNom in item[2]:
-            if counter != 0:
-                line+=', '
-            line += sectionLink(mnNom[1],mnNom[0])
-            counter+=1
-        line+='\n'
-        mnOutput.append(line)
-    report += mnOutput
 
     # Counts up all the noms, holds, reviews, and 2nd opinions in each section and
     #   iterates the counter in the nomsBySection datastructure
