@@ -18,10 +18,38 @@ live = 0
 ########
 # Version Number
 ########
-version = '1.5.0-dev'
+version = '2.0.0-dev'
+########
+# Logging
+########
+# create logger with 'spam_application'
+logger = logging.getLogger('GANRB')
+logger.setLevel(logging.DEBUG)
+# create file handler which logs even debug messages
+fh = logging.FileHandler('GANRB.log')
+fh.setLevel(logging.DEBUG)
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.WARNING)
+# create formatter and add it to the handlers
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M',
+                    filename='./GANRB.log',
+                    filemode='w')
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+# add the handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)
 
+entRegex = re.compile(
+    r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+    )
+    
 '''
-Copyright (c) 2016 Wugpodes
+Copyright (c) 2019 Wugpodes
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -44,31 +72,35 @@ THE SOFTWARE.
 
 class NomPage:
     ##Finds GAN entries and returns time stamp, title, and the following line
-    entRegex = re.compile(
-            r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
-        )
     def __init__(self,text):
+        self.logger = logging.getLogger('GANRB.NomPage')
+        self.logger.info("Initializing NomPage object")
         self.raw_text = text
         self.text = text.split("\n")
         self.section = []
         self.stats = {
-            'noms' = 0,
-            'inac' = 0,
-            'ohld' = 0,
-            'orev' = 0,
-            'scnd' = 0,
+            'noms' : 0,
+            'inac' : 0,
+            'ohld' : 0,
+            'orev' : 0,
+            'scnd' : 0,
         }
 
-    def parse(text=None, organize=True, noms=True):
+    def parse(self,text=None, organize=True, noms=True):
+        log = self.logger
+        log.info("Parsing nomination page")
         if text == None:
             text = self.text
         for line in text:
+            log.debug(line)
             if '==' in line:  # If line is a (sub-)section heading...
                 line = line.strip()
                 if '===' in line:  # If line is a subsection heading...
+                    log.info("Subsection found: "+line.strip('=').strip())
                     subsec = SubSection(line.strip('=').strip(),c_sec)
                     self.section[-1].subsections.append(subsec)
                 else: # If line is a section heading...
+                    log.info("Section found: "+line.strip('=').strip())
                     sec = Section(line.strip('=').strip())
                     self.section.append(sec)
                 c_sec = self.section[-1]
@@ -92,10 +124,12 @@ class NomPage:
             try:
                 self.nominator_stats()
             except AttributeError as e:
-                logging.error("Cannot get nominator stats without" \
+                log.error("Cannot get nominator stats without" \
                                 + "organizing nominations")
 
     def organize_noms(self):
+        log = self.logger
+        log.info("Organizing nominations")
         noms = []
         badnoms = []
         for sec in self.section:
@@ -132,8 +166,10 @@ class NomPage:
         self.oldSecondOp = oldScnd
         self.badNoms = badnoms
 
-    def nominator_stats():
+    def nominator_stats(self):
         """Assumes self.organize_noms() has already been run."""
+        log = self.logger
+        log.info("Calculating nominator stats")
         nominations = self.nominations
         nominators = {}
         nom_list = []
@@ -141,29 +177,42 @@ class NomPage:
             nom = entry.nominator
             if nom not in nominators:
                 nominators[nom] = Nominator(nom)
-            nominations[nom].add(entry)
+            n_obj = nominators[nom]
+            n_obj.add(entry)
         self.nominators = nominators
 
-    def write_(self):
+    def write_report(self):
+        global version
+        log = self.logger
         report = """
         {{/top}}
 
         """
+        log.debug("Writing oldest ten")
         oldestTen = self.print_oldest_ten()
-        report = self.print_report()
-        """
+        log.debug("Writing report")
+        backlog_report = self.print_backlog_report()
+        er_sec = """
         == Exceptions report ==
         """
+        log.debug("Writing exceptions report")
         oldHolds = self.print_oldHolds()
         oldRevs = self.print_oldReviews()
         oldScnd = self.print_oldSecond()
         oldest = self.print_oldest()
         badnoms = self.print_badnoms()
         multinoms = self.print_noms()
-        """
+        sum_sec = """
         == Summary ==
         """
+        log.debug("Writing summary")
         summary = self.print_section_summary()
+        log.debug("Concatenating reports")
+        report = report + oldestTen + er_sec + oldHolds + oldRevs + oldScnd
+        report = report + oldest + badnoms + multinoms + sum_sec + summary 
+        report = report + '<!-- Updated at '+wikiTimeStamp()+' by'
+        report = report + ' WugBot v'+version+' -->\n'
+        return(report)
 
     def print_oldest_ten(self):
         oldest = self.oldestTen
@@ -174,29 +223,32 @@ class NomPage:
             ] + [x.link() for x in oldest]
         return('\n'.join(print_list))
 
-    def print_report(self):
+    def print_backlog_report(self):
         ts = wikiTimeStamp()
         noms = self.stats['noms']
         inac = self.stats['inac']
         ohld = self.stats['ohld']
         orev = self.stats['orev']
         scnd = self.stats['scnd']
+        log = self.logger
         newline = ts+' &ndash; '+str(noms)+' nominations outstanding; ' \
             + str(inac) + ' not reviewed; ' \
             + '[[Image:Symbol wait.svg|15px|On Hold]] x ' + str(ohld) + '; '\
             +'[[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
             + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion ' \
             + 'Requested]] x ' + str(scnd)
-        with open('backlog_report.txt',r) as f:
+        with open('backlog_report.txt','r') as f:
             backlog = [line.strip() for line in f]
-        backlog.pop().insert(0,newline)
+        self.oldLine = backlog.pop()
+        backlog.insert(0,newline)
         backlog = [
             '== Backlog report ==',
-            "\n".join(backlog),
+            "\n".join(backlog),  # backlog[1]
             ":''Previous daily backlogs can be viewed at the " + \
             "[[/Backlog archive|backlog archive]].''"
         ]
-        with open('backlog_report.txt',w) as f:
+        with open('backlog_report.txt','w') as f:
+            log.info("Writing backlog report to file")
             f.write(backlog[1])
         return('\n'.join(backlog))
 
@@ -211,7 +263,7 @@ class NomPage:
             '=== Old reviews ===',
             ":''Nominations that have been marked under review for 7 days or "\
             +"longer.''",
-        ] + [x.link() for x in self.oldOnRev]
+        ] + [x.link() for x in self.oldReviews]
         return('\n'.join(print_list))
 
     def print_oldSecond(self):
@@ -233,7 +285,7 @@ class NomPage:
     def print_badnoms(self):
         n_bad = len(self.badNoms)
         if n_bad < 1:
-            subhead = "None"
+            subhead = ""
         elif n_bad > 1:
             subhead = ":''There are currently "+str(n_bad)\
             +" malformed nominations.''"
@@ -263,16 +315,18 @@ class NomPage:
         print_list = []
         for sec in sections:
             print_list.append(sec.summary())
-
+        return("\n".join(print_list))
 
 
 class Section:
     sctRegex = re.compile(r'==+ (.*?) (==+)')
     def __init__(self,name):
         self.name = name
+        self.logger = logging.getLogger('GANRB.Section')
+        self.logger.info("Initializing Section object for "+name)
         self.subsections = []
 
-    def link(self, image = False, text = None):
+    def link(self, image = False, text = None, num = 0):
         """I may be wrong, but I'm pretty sure there's no reason for There
         to be a nomination in a super section, so it just defaults to zero.
         I should probably ask someone about that though.
@@ -282,9 +336,17 @@ class Section:
         else:
             sec = self.name
             link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
-        number = 0
+        number = num
         string = link + " " + str(number)
         return(string)
+        
+    def summary(self):
+        subsections = self.subsections
+        n = sum([len(x.entries) for x in subsections])
+        text = "'''"+self.link()+"''' ("+str(n)+")"
+        for subsec in subsections:
+            text = text + "\n" + subsec.summary()
+        return(text)
 
     def __str__(self):
         s = self.name
@@ -293,7 +355,7 @@ class Section:
 
 class SubSection(Section):
     def __init__(self, name, section):
-        Section.__init__(name)
+        Section.__init__(self,name)
         self.entries = []
         self.section = section
 
@@ -305,21 +367,30 @@ class SubSection(Section):
         else:
             sec = self.subsection
             link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
-        if length:
-            days = str((dt.utcnow() - self.timestamp).days)
-        status = self.status
-        if status == None or not image:
-            img = ''
-        elif status == 'H':
-            img = '[[Image:Symbol wait.svg|15px|On Hold]] '
-        elif status == 'R':
-            img = '[[Image:Searchtool.svg|15px|Under Review]] '
-        elif status == '2':
-            img = '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] '
-        string = '# '+img+link
-        if length:
-            string = string+" ('''"+days+"''' days)"
-        return(string)
+        return(link)
+        
+    def summary(self):
+        entries = self.entries
+        nHld = len([x for x in entries if x.status == 'H'])
+        nRev = len([x for x in entries if x.status == 'R'])
+        nScn = len([x for x in entries if x.status == '2'])
+        HldImg = '[[Image:Symbol wait.svg|15px|On Hold]]'
+        RevImg = '[[Image:Searchtool.svg|15px|Under Review]]'
+        ScnImg = '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'
+        out = ":'''"+self.link()+"''' ("+str(len(entries))+")"
+        if nHld > 0:
+            out = out + ": "+HldImg+" x "+str(nHld)
+        if nRev > 0:
+            sep = "; "
+            if nHld == 0:
+                sep = ": "
+            out = out+sep+RevImg+" x "+str(nRev)
+        if nScn > 0:
+            sep = "; "
+            if (nHld == 0) and (nRev == 0):
+                sep = ": "
+            out = out+sep+ScnImg+" x "+str(nScn)
+        return(out)
 
     def __str__(self):
         s = self.name
@@ -327,7 +398,7 @@ class SubSection(Section):
 
 
 class Entry:
-    def __init__(self,line,matches,subsection):
+    def __init__(self,matches,line,subsection):
         """
         Attributes:
 
@@ -341,79 +412,76 @@ class Entry:
         self.nominator, str
         self.number, int
         """
+        self.logger = logging.getLogger('GANRB.Entry')
+        log = self.logger
+        log.debug("Initializing Entry object")
         self.text = line
         self._matches = matches
         self.status = None
         self.subsection = subsection
         self.bad = False
         self.badlink = None
-        subsSectName = subsection.name
-
+        subsSectName = subsection #subsection.name
+        
+        log.debug("Getting title")
         try:
             title = matches.group(1)
         except:
-            logging.warning("Unable to get title for %s" % line)
-            try:
-                self.bad = True
-                logging.debug(print([matches.group(1),subSectName]))
-            except Exception as e:
-                logging.warning(e)
-                logging.warning("Could not log debug info.")
+            log.warning("Unable to get title")
+            log.debug(line)
+            self.bad = True
             title = None
         self.title = title
-
+        log.debug(title)
+        
+        log.debug("Getting timestamp")
         try:
             t = matches.group(4)
             time = wiki2datetime(t)
             l = True
         except:
-            logging.warning("Unable to get timestamp for %s" % line)
-            try:
-                self.bad = True
-                logging.debug(print([matches.group(1),subSectName]))
-                if title:
-                    self.badlink = self.link(length=False)
-                except Exception as e:
-                    logging.warning(e)
-                    logging.warning("Could not log debug info.")
-                    time = None
-                    l = False
+            log.warning("Unable to get timestamp")
+            log.debug(line)
+            self.bad = True
+            time = None
+            l = False
         self.timestamp = time
-
+        log.debug(time)
+        
+        log.debug("Getting username")
         try:
             username = self.getUsername(matches.group(3))
-        except:
-            logging.warning("Unable to get username for %s" % line)
-            try:
-                self.bad = True
-                logging.debug(print([matches.group(1),subSectName]))
-                if title:
-                    self.badlink = self.link(length=l)
-            except Exception as e:
-                logging.warning(e)
-                logging.warning("Could not log debug info.")
+        except Exception as e:
+            log.warning("Unable to get username")
+            self.bad = True
+            log.debug(line)
             username = None
         self.nominator = username
-
+        log.debug(username)
+        
+        log.debug("Getting review number")
         try:
-            review_num = matches.group(2))
+            review_num = matches.group(2)
         except:
-            logging.warning("Unable to get review number for %s" % line)
-            try:
-                self.bad = True
-                logging.debug(print([matches.group(1),subSectName]))
-                if title:
-                    self.badlink = self.link(length=l)
-                elif username:
-                    self.badlink = self.link(length=l, text=username)
-            except Exception as e:
-                logging.warning(e)
-                logging.warning("Could not log debug info.")
+            log.warning("Unable to get review number")
+            self.bad = True
+            log.debug(line)
             review_num = 1
+        self.get_badLink()
         self.number = review_num
+        log.debug(review_num)
+        
+    def get_badLink(self):
+        if self.title != None:
+            title = self.title
+        else:
+            title = "Unknown nomination"
+        self.badlink = self.link(length=False,text=title)
 
     def getUsername(self, text):
-        if '[[User' in line:
+        log = self.logger
+        log.debug(text)
+        if '[[User' in text:
             name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
             return(name)
         else:
@@ -463,7 +531,7 @@ class Nominator():
             link_list.append(str(entry))
         head = ";" + self.username + " " + str(n_noms)
         nomlist = ":" + ", ".join(link_list)
-        return("\n".join([head,nomlist])
+        return("\n".join([head,nomlist]))
 
 def wiki2datetime(wikistamp):
     time, date = wikistamp.split(', ')
@@ -610,124 +678,43 @@ def sectionLink(section,title):
     text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
     return(text)
 
-def startLogging(loglevel):
-    global logging
-    numeric_level = getattr(logging, loglevel.upper(), None)
-    if numeric_level != None:
-        logging.basicConfig(level=numeric_level, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
-    else:
-        logging.basicConfig(level=logging.WARNING, filename='Testing.log', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %I:%M:%S %p')
-        logging.warning('Invalid log level \'%s\'. Defaulting to WARNING' % loglevel)
-
 def checkArgs(arg):
-    arg = arg.split('=')
-    if arg[0] == '--log' or arg[0] == '-l':
-        startLogging(arg[1])
-    else:
-        raise ValueError('Unknown command line argument \'%s\'' % arg[0])
-
-def main():
-    logging.info("### Starting new run ###")
-    logging.info("live is set to %s" % live)
-    logging.info("GANReportBot version %s" % version)
-    site = pywikibot.Site('en', 'wikipedia')
-    page = pywikibot.Page(site,'Wikipedia:Good article nominations')
-    nomPage = NomPage(page.text)
-    nomPage.parse()
-
-    #Compile regexes
-
-    ##Finds the Wikipedia UTC Timestamp
-    datRegex = re.compile(r', (\d+) (.*?) (\d\d\d\d)')
-    nomPage.write()
-    '''
-    \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/
-        Things below here have yet to be sorted into a class method
-    \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/   \/
-    '''
-    #########################################################################
-    #   DATA FORMAT FOR ITEMS IN ARRAYS PRODUCED ABOVE
-    #   (entry,nomin,onHld,onRev,scnOp)
-    #       entryData[0] = Title of the nominated article
-    #       entryData[1] = Nomination number
-    #       entryData[2] = Section name
-    #       entryData[3] = Subsection name
-    #       entryData[4] = Timestamp
-    #       entryData[5] = Nominator's name
-    #       entryData[6] = The line following (not present in nomin or entry)
-    #########################################################################
-
-
-    # Counts up all the noms, holds, reviews, and 2nd opinions in each section and
-    #   iterates the counter in the nomsBySection datastructure
-    for item in entry:
-        if item[2] in nomsBySection and item[3] == None:
-            nomsBySection[item[2]][0]+=1
-            if any(item[0] in i for i in onHld):
-                nomsBySection[item[2]][1]+=1
-            elif any(item[0] in i for i in onRev):
-                nomsBySection[item[2]][2]+=1
-            elif any(item[0] in i for i in scnOp):
-                nomsBySection[item[2]][1]+=1
-        elif item[3] in subSectDict:
-            index=4
-            nomsBySection[item[2]][index][item[3]][0]+=1
-            if any(item[0] in i for i in onHld):
-                nomsBySection[item[2]][index][item[3]][1]+=1
-            elif any(item[0] in i for i in onRev):
-                nomsBySection[item[2]][index][item[3]][2]+=1
-            elif any(item[0] in i for i in scnOp):
-                nomsBySection[item[2]][index][item[3]][3]+=1
-        else:
-            print(item)
-            raise TypeError('Nominations must have a section or subsection')
-
-    # Creates the summary report by iterating over the nomsBySection data structure
-    sectionNameList=[]
-    subsectionDict={}
-    for key in nomsBySection:
-        sectionNameList.append(key)
-        subsectionList=[]
-        for subkey in nomsBySection[key][4]:
-            subsectionList.append(subkey)
-        if subsectionList != []:
-            subsectionList.sort()
-        subsectionDict[key]=subsectionList
-    summary = []
-    sectionNameList.sort()
-    for section in sectionNameList:
-        summary.append(updateSummary(section))
-        if subsectionDict[section] != [] :
-            for subsection in subsectionDict[section]:
-                summary.append(updateSummary(section,subsection))
-    # Writes the summary report
-    report.append('== Summary ==\n')
-    report+=summary
-
-    # A relic of the old way, in memoriam WugBot-v0.0
-    toPrint=report
-    # Sign it
-    toPrint.append('<!-- Updated at '+wikiTimeStamp()+' by' \
-        +' WugBot v'+version+' -->\n')
-
+    pass
+        
+def save_pages(report,oldLine,oldTen):
+    log = logging.getLogger('GANRB')
+    log.info("Saving page")
+    log.debug("live == "+str(live))
+    logging.info("Loading report page")
+    try:
+        page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
+    except:
+        log.critical("Could not load report page!")
     # Determine if the bot should write to a live page or the test page. Defaults to
     #     test page. Value of -1 tests backlog update (not standard because the file
     #     size is very big).
-    if live == 2:
+    if live == 0:
         pass
     elif live == 1:
-        logging.info("Writing to real pages")
-        page.text=''.join(toPrint)
-        page.save('Updating exceptions report, WugBot v'+version)
-        page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report/'\
-                                    +'Backlog archive')
-        page.text+=oldLine+'\n'
+        log.info("Saving Report")
+        page.text=report
+        try:
+            page.save('Updating exceptions report, WugBot v'+version)
+        except:
+            log.critical("Could not save to report page!")
+        log.info("Saving backlog archive")
+        try:
+            page = pywikibot.Page(site,'Wikipedia:Good article nominations/' \
+                                        +'Report/Backlog archive')
+        except:
+            log.critical("Could not load backlog archive")
+        page.text+='\n'+oldLine
         page.save('Update of GAN report backlog, WugBot v'+version)
     else:
         logging.info("Writing to test page")
         page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
         page.text=''.join(toPrint)
-        page.save('Testing expanded reporting')
+        page.save('Testing WugBot v'+version)
         if live==-1:
             logging.info("Writing to backlog archive test page")
             page = pywikibot.Page(site,
@@ -737,29 +724,46 @@ def main():
             page.save('Testing backlog report updating')
 
     # Update the transcluded list of the 5 oldest noms
+    log.info("Updating oldest 5 list")
     links = []
-    for ent in topTen:
-        if ent[3] == None:
-            i = 2
-        else:
-            i = 3
-        links.append(sectionLink(ent[i],ent[0]))
+    for ent in oldTen:
+        links.append(ent.link(length=False))
     pText = '\n&bull; '.join(links[:5])
-    pText+='\n<!-- If you clear an item from backlog and want to update the list before the bot next runs, here are the next 5 oldest nominations:\n&bull; '
+    pText+='\n<!-- If you clear an item from backlog and want to update ' \
+                    +'the list before the bot next runs, here are the next ' \
+                    +'5 oldest nominations:\n&bull; '
     pText+= '\n&bull; '.join(links[5:])
     pText+= '\n-->'
-    if live == 1:
+    if live == 0:
+        pass
+    elif live == 1:
         page = pywikibot.Page(site,'Wikipedia:Good article nominations/backlog/items')
         page.text = pText
         page.save('Updating list of oldest noms. WugBot v%s' % version)
     else:
+        log.debug('Writing to items test page')
         page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/items')
         page.text = pText
         page.save('Testing WugBot v%s' % version)
+    log.info("Finished at "+str(wikiTimeStamp()))
 
-    print(wikiTimeStamp())
-    logging.info("Finished")
+def main():
+    log = logging.getLogger('GANRB.main')
+    log.info("Starting run")
+    log.info("### Starting new run ###")
+    log.info("GANReportBot version %s" % version)
+    log.debug("live is set to %s" % live)
+    site = pywikibot.Site('en', 'wikipedia')
+    page = pywikibot.Page(site,'Wikipedia:Good article nominations')
+    nomPage = NomPage(page.text)
+    nomPage.parse()
+    report = nomPage.write_report()
+    oldLine = nomPage.oldLine
+    oldTen = nomPage.oldestTen
+    save_pages(report,oldLine,oldTen)
+    
 
 if __name__ == "__main__":
+    main()
     for i in range(1,len(sys.argv)):
         checkArgs(sys.argv[i])
