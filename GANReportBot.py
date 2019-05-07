@@ -189,7 +189,7 @@ class NomPage:
         oldestTen = self.print_oldest_ten()
         log.debug("Writing report")
         backlog_report = self.print_backlog_report()
-        er_sec = "== Exceptions report ==\n"
+        er_sec = "\n== Exceptions report ==\n"
         log.debug("Writing exceptions report")
         oldHolds = self.print_oldHolds()
         oldRevs = self.print_oldReviews()
@@ -197,13 +197,13 @@ class NomPage:
         oldest = self.print_oldest()
         badnoms = self.print_badnoms()
         multinoms = self.print_noms()
-        sum_sec = "== Summary ==\n"
+        sum_sec = "\n== Summary ==\n"
         log.debug("Writing summary")
         summary = self.print_section_summary()
         log.debug("Concatenating reports")
         report = report + oldestTen + backlog_report + er_sec + oldHolds 
         report = report + oldRevs + oldScnd + oldest + badnoms + multinoms  
-        report = report + + sum_sec + summary + '<!-- Updated at '
+        report = report + sum_sec + summary + '<!-- Updated at '
         report = report + wikiTimeStamp()+' by WugBot v'+version+' -->\n'
         return(report)
 
@@ -235,7 +235,7 @@ class NomPage:
         self.oldLine = backlog.pop()
         backlog.insert(0,newline)
         backlog = [
-            '== Backlog report ==',
+            '\n== Backlog report ==',
             "\n".join(backlog),  # backlog[1]
             ":''Previous daily backlogs can be viewed at the " + \
             "[[/Backlog archive|backlog archive]].''"
@@ -247,13 +247,13 @@ class NomPage:
 
     def print_oldHolds(self):
         print_list = [
-            '=== Holds over 7 days old ==='
+            '\n=== Holds over 7 days old ==='
         ] + [x.link() for x in self.oldOnHold]
         return('\n'.join(print_list))
 
     def print_oldReviews(self):
         print_list = [
-            '=== Old reviews ===',
+            '\n=== Old reviews ===',
             ":''Nominations that have been marked under review for 7 days or "\
             +"longer.''",
         ] + [x.link() for x in self.oldReviews]
@@ -261,7 +261,7 @@ class NomPage:
 
     def print_oldSecond(self):
         print_list = [
-            '=== Old requests for 2nd opinion ===',
+            '\n=== Old requests for 2nd opinion ===',
             ":''Nominations that have been marked requesting a second opinion" \
             +" for 7 days or longer.''"
         ] + [x.link() for x in self.oldSecondOp]
@@ -269,7 +269,7 @@ class NomPage:
 
     def print_oldest(self):
         print_list = [
-            '=== Old nominations ===\n',
+            '\n=== Old nominations ===\n',
             ":''All nominations that were added 30 days ago or longer, "\
             +"regardless of other activity.''",
         ] + [x.link(image=True) for x in self.overThirty]
