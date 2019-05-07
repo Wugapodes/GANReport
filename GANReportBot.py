@@ -229,7 +229,7 @@ class NomPage:
             + '[[Image:Symbol wait.svg|15px|On Hold]] x ' + str(ohld) + '; '\
             +'[[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
             + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion ' \
-            + 'Requested]] x ' + str(scnd)
+            + 'Requested]] x ' + str(scnd) + '<br />'
         with open('backlog_report.txt','r') as f:
             backlog = [line.strip() for line in f]
         self.oldLine = backlog.pop()
@@ -285,7 +285,7 @@ class NomPage:
         else:
             subhead = ":''There is currently 1 malformed nomination.''"
         print_list = [
-            '=== Malformed nominations ===',
+            '\n=== Malformed nominations ===',
             subhead,
         ] + [x.badlink for x in self.badNoms]
         return('\n'.join(print_list))
@@ -293,10 +293,10 @@ class NomPage:
     def print_noms(self,cutoff=3):
         nominators = self.nominators
         nom_list = []
-        for nm in nominators:
-            nom = nominators[nm]
-            nom_list.append(nom.print_noms())
-        head = "=== Nominators with multiple nominations ==="
+        for k,v in nominators.items():
+            if len(v.entries) >= cutoff:
+                nom_list.append(v.print_noms())
+        head = "\n=== Nominators with multiple nominations ==="
         print_list = [
             head,
             "\n".join(nom_list)
@@ -336,7 +336,7 @@ class Section:
     def summary(self):
         subsections = self.subsections
         n = sum([len(x.entries) for x in subsections])
-        text = "'''"+self.link()+"''' ("+str(n)+")"
+        text = "'''"+self.link(num="")+"''' ("+str(n)+")"
         for subsec in subsections:
             text = text + "\n" + subsec.summary()
         return(text)
@@ -522,7 +522,7 @@ class Nominator():
         for entry in self.entries:
             n_noms += 1
             link_list.append(str(entry))
-        head = ";" + self.username + " " + str(n_noms)
+        head = "'''" + self.username + "''' (" + str(n_noms) + ")"
         nomlist = ":" + ", ".join(link_list)
         return("\n".join([head,nomlist]))
 
