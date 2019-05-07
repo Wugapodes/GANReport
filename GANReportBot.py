@@ -184,17 +184,12 @@ class NomPage:
     def write_report(self):
         global version
         log = self.logger
-        report = """
-        {{/top}}
-
-        """
+        report = "{{/top}}\n\n"
         log.debug("Writing oldest ten")
         oldestTen = self.print_oldest_ten()
         log.debug("Writing report")
         backlog_report = self.print_backlog_report()
-        er_sec = """
-        == Exceptions report ==
-        """
+        er_sec = "== Exceptions report ==\n"
         log.debug("Writing exceptions report")
         oldHolds = self.print_oldHolds()
         oldRevs = self.print_oldReviews()
@@ -202,16 +197,14 @@ class NomPage:
         oldest = self.print_oldest()
         badnoms = self.print_badnoms()
         multinoms = self.print_noms()
-        sum_sec = """
-        == Summary ==
-        """
+        sum_sec = "== Summary ==\n"
         log.debug("Writing summary")
         summary = self.print_section_summary()
         log.debug("Concatenating reports")
-        report = report + oldestTen + er_sec + oldHolds + oldRevs + oldScnd
-        report = report + oldest + badnoms + multinoms + sum_sec + summary 
-        report = report + '<!-- Updated at '+wikiTimeStamp()+' by'
-        report = report + ' WugBot v'+version+' -->\n'
+        report = report + oldestTen + backlog_report + er_sec + oldHolds 
+        report = report + oldRevs + oldScnd + oldest + badnoms + multinoms  
+        report = report + + sum_sec + summary + '<!-- Updated at '
+        report = report + wikiTimeStamp()+' by WugBot v'+version+' -->\n'
         return(report)
 
     def print_oldest_ten(self):
@@ -681,7 +674,7 @@ def sectionLink(section,title):
 def checkArgs(arg):
     pass
         
-def save_pages(report,oldLine,oldTen):
+def save_pages(site,report,oldLine,oldTen):
     log = logging.getLogger('GANRB')
     log.info("Saving page")
     log.debug("live == "+str(live))
@@ -713,15 +706,8 @@ def save_pages(report,oldLine,oldTen):
     else:
         logging.info("Writing to test page")
         page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
-        page.text=''.join(toPrint)
+        page.text=report
         page.save('Testing WugBot v'+version)
-        if live==-1:
-            logging.info("Writing to backlog archive test page")
-            page = pywikibot.Page(site,
-                'User:Wugapodes/GANReportBotTest/Backlog archive')
-            testText=page.text
-            page.text=testText
-            page.save('Testing backlog report updating')
 
     # Update the transcluded list of the 5 oldest noms
     log.info("Updating oldest 5 list")
@@ -760,7 +746,7 @@ def main():
     report = nomPage.write_report()
     oldLine = nomPage.oldLine
     oldTen = nomPage.oldestTen
-    save_pages(report,oldLine,oldTen)
+    save_pages(site,report,oldLine,oldTen)
     
 
 if __name__ == "__main__":
