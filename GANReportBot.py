@@ -26,7 +26,10 @@ version = '2.0.0-dev'
 logger = logging.getLogger('GANRB')
 logger.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
-fh = logging.FileHandler('GANRB.log')
+if live == 1:
+    fh = logging.FileHandler('GANRB.log')
+else:
+    fh = logging.FileHandler('GANRB.beta.log')
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -293,9 +296,11 @@ class NomPage:
     def print_noms(self,cutoff=3):
         nominators = self.nominators
         nom_list = []
-        for k,v in nominators.items():
+        for v in list(nominators.values()):
             if len(v.entries) >= cutoff:
-                nom_list.append(v.print_noms())
+                nom_list.append(v)
+        nom_list.sort(key=lambda nominator: len(nominator.entries),reverse=True)
+        nom_list = [x.print_noms() for x in nom_list]
         head = "\n=== Nominators with multiple nominations ==="
         print_list = [
             head,
