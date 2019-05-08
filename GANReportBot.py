@@ -577,49 +577,6 @@ def monthConvert(name):
         elif name == 12: return('December')
         else: raise ValueError
 
-def appendUpdates(toprint,updates,index=3,rev=True):
-    '''
-    Takes an iterable array and the output array and returns the output array
-    appended with the marked up iterable array.
-    '''
-    for item in updates:
-        if item[3] != None:
-            i = 3
-        else:
-            i = 2
-        text = '# '+sectionLink(item[i],item[0])+" ('''"\
-                +str(item[index])+"''' days)\n"
-        toprint.append(text)
-    return(toprint)
-
-def dateActions(nominList,index):
-    '''
-    For a given list, it finds the embedded date, how many days ago that date is
-    from today, and appends that number to the list. It then returns the list
-    '''
-    for item in nominList:
-        iMatch = datRegex.search(item[index])
-        if iMatch != None:
-            day = int(iMatch.group(1))
-            month = monthConvert(str(iMatch.group(2)))
-            year = int(iMatch.group(3))
-            d0 = date(year, month, day)
-            delta = today-d0
-            item.append(delta.days)
-            #print(delta.days,'days')
-        else:
-            print(item[index])
-            print(item)
-            item.append(None)
-    return(nominList)
-
-def sortByKey(nominList,index):
-    '''
-    Sorts a given list by a given index in a sublist, largest first
-    '''
-    nominList.sort(key=lambda x: x[index],reverse=True)
-    return(nominList)
-
 def wikiTimeStamp():
     '''
     Returns the current time stamp in the style of wikipedia signatures.
@@ -630,51 +587,6 @@ def wikiTimeStamp():
     +monthConvert(datetime.datetime.utcnow().month)+' '\
     +str(datetime.datetime.utcnow().year)+' (UTC)'
     return(stamp)
-
-def updateSummary(section,subsection=False):
-    global nomsBySection
-    global subSectDict
-    if subsection:
-        i=4
-        n = str(nomsBySection[section][i][subsection][0])
-        h = str(nomsBySection[section][i][subsection][1])
-        r = str(nomsBySection[section][i][subsection][2])
-        s = str(nomsBySection[section][i][subsection][3])
-        text = ":'''"+sectionLink(subsection,subsection)+"''' ("+n+")"
-    else:
-        n = str(nomsBySection[section][0])
-        h = str(nomsBySection[section][1])
-        r = str(nomsBySection[section][2])
-        s = str(nomsBySection[section][3])
-        text = "'''"+sectionLink(section,section)+"''' ("+n+")"
-        if section=='Miscellaneous':
-            text+='\n'
-    if int(h)+int(r)+int(s)>0:
-        text+=": "
-    else:
-        text+="\n"
-    if int(h) > 0:
-        text += '[[Image:Symbol wait.svg|15px|On Hold]] x '+h
-        if int(r)>0 or int(s)>0:
-            text+='; '
-        else:
-            text+='\n'
-    if int(r) > 0:
-        text += '[[Image:Searchtool.svg|15px|Under Review]] x '+r
-        if int(s)>0:
-            text+='; '
-        else:
-            text+='\n'
-    if int(s) > 0:
-        text += '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]]'\
-                +' x '+s+'\n'
-    return(text)
-
-def sectionLink(section,title):
-    if section == None:
-        section = 'Miscellaneous'
-    text='[[Wikipedia:Good article nominations#'+section+'|'+title+']]'
-    return(text)
 
 def checkArgs(arg):
     pass
@@ -692,6 +604,7 @@ def save_pages(site,report,oldLine,oldTen):
     #     test page. Value of -1 tests backlog update (not standard because the file
     #     size is very big).
     if live == 0:
+        log.info("Live set to 0, no pages written")
         pass
     elif live == 1:
         log.info("Saving Report")
