@@ -220,6 +220,7 @@ class NomPage:
         return('\n'.join(print_list))
 
     def print_backlog_report(self):
+        projectPath = '/data/project/ganreportbot/pywikibot/'
         ts = wikiTimeStamp()
         noms = self.stats['noms']
         inac = self.stats['inac']
@@ -233,7 +234,7 @@ class NomPage:
             +'[[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
             + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion ' \
             + 'Requested]] x ' + str(scnd) + '<br />'
-        with open('backlog_report.txt','r') as f:
+        with open(projectPath+'backlog_report.txt','r') as f:
             backlog = [line.strip() for line in f]
         self.oldLine = backlog.pop()
         backlog.insert(0,newline)
@@ -243,7 +244,7 @@ class NomPage:
             ":''Previous daily backlogs can be viewed at the " + \
             "[[/Backlog archive|backlog archive]].''"
         ]
-        with open('backlog_report.txt','w') as f:
+        with open(projectPath+'backlog_report.txt','w') as f:
             log.info("Writing backlog report to file")
             f.write(backlog[1])
         return('\n'.join(backlog))
