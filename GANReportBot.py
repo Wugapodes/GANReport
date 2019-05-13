@@ -486,7 +486,7 @@ class Entry:
         else:
             raise ValueError('Could not get username.')
 
-    def link(self, image = False, length = True, text = None):
+    def link(self, image = False, length = True, text = None, num=True):
         if text == None:
             link = str(self)
         else:
@@ -503,7 +503,10 @@ class Entry:
             img = '[[Image:Searchtool.svg|15px|Under Review]] '
         elif status == '2':
             img = '[[Image:Symbol neutral vote.svg|15px|2nd Opinion Requested]] '
-        string = '# '+img+link
+        if num:
+            string = '# '+img+link
+        else:
+            string = img+link
         if length:
             string = string+" ('''"+days+"''' days)"
         return(string)
@@ -632,7 +635,7 @@ def save_pages(site,report,oldLine,oldTen):
     log.info("Updating oldest 5 list")
     links = []
     for ent in oldTen:
-        links.append(ent.link(length=False))
+        links.append(ent.link(length=False,num=False))
     pText = '\n&bull; '.join(links[:5])
     pText+='\n<!-- If you clear an item from backlog and want to update ' \
                     +'the list before the bot next runs, here are the next ' \
