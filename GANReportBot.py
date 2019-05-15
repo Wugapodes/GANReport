@@ -50,6 +50,9 @@ logger.addHandler(ch)
 entRegex = re.compile(
     r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
+reviewRegex = re.compile(
+    r'{{GAReview.*?}}\s*.*?\[\[User\:(.*?)(?:\||\]\]).*? (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
+    )
     
 '''
 Copyright (c) 2019 Wugpodes
@@ -252,7 +255,7 @@ class NomPage:
     def print_oldHolds(self):
         print_list = [
             '\n=== Holds over 7 days old ==='
-        ] + [x.link() for x in self.oldOnHold]
+        ] + [x.link(r=True) for x in self.oldOnHold]
         return('\n'.join(print_list))
 
     def print_oldReviews(self):
@@ -260,7 +263,7 @@ class NomPage:
             '\n=== Old reviews ===',
             ":''Nominations that have been marked under review for 7 days or "\
             +"longer.''",
-        ] + [x.link() for x in self.oldReviews]
+        ] + [x.link(r=True) for x in self.oldReviews]
         return('\n'.join(print_list))
 
     def print_oldSecond(self):
@@ -268,7 +271,7 @@ class NomPage:
             '\n=== Old requests for 2nd opinion ===',
             ":''Nominations that have been marked requesting a second opinion" \
             +" for 7 days or longer.''"
-        ] + [x.link() for x in self.oldSecondOp]
+        ] + [x.link(r=True) for x in self.oldSecondOp]
         return('\n'.join(print_list))
 
     def print_oldest(self):
@@ -486,14 +489,17 @@ class Entry:
         else:
             raise ValueError('Could not get username.')
 
-    def link(self, image = False, length = True, text = None, num=True):
+    def link(self, image = False, length = True, text = None, num=True, r=False):
         if text == None:
             link = str(self)
         else:
             sec = self.subsection
             link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
         if length:
-            days = str((dt.utcnow() - self.timestamp).days)
+            if r:
+                days = str((dt.utcnow() - self.r_timestamp).days)
+            else:
+                days = str((dt.utcnow() - self.timestamp).days)
         status = self.status
         if status == None or not image:
             img = ''
@@ -510,6 +516,21 @@ class Entry:
         if length:
             string = string+" ('''"+days+"''' days)"
         return(string)
+        
+    def add_review(self,status,line):
+        log = self.logger
+        log.info("Adding review")
+        self.status = status
+        matches = reviewRegex.search(line)
+        try:
+            t = matches.group(2)
+            time = wiki2datetime(t)
+            self.r_timestamp = time
+        except:
+            log.warning("Cannot get review time")
+            self.bad = True
+            log.debug(line)
+            self.r_timestamp = dt.utcnow()
 
     def __str__(self):
         sec = self.subsection
