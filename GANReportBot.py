@@ -119,11 +119,11 @@ class NomPage:
             elif 'GAReview' in line:  # If a review template...
                 c_entry = c_sec.subsections[-1].entries[-1]
                 if 'on hold' in line:
-                    c_entry.status = 'H'
+                    c_entry.add_review('H',line)
                 elif '2nd opinion' in line:
-                    c_entry.status = '2'
+                    c_entry.add_review('2',line)
                 else: # Otherwise it's under review.
-                    c_entry.status = 'R'
+                    c_entry.add_review('R',line)
         if organize:
             self.organize_noms()
         if noms:
