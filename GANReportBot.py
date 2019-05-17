@@ -255,7 +255,7 @@ class NomPage:
     def print_oldHolds(self):
         print_list = [
             '\n=== Holds over 7 days old ==='
-        ] + [x.link(r=True) for x in self.oldOnHold]
+        ] + [x.link(r=True) for x in sorted(self.oldOnHold, key=lambda y: y.timestamp)]
         return('\n'.join(print_list))
 
     def print_oldReviews(self):
@@ -263,7 +263,7 @@ class NomPage:
             '\n=== Old reviews ===',
             ":''Nominations that have been marked under review for 7 days or "\
             +"longer.''",
-        ] + [x.link(r=True) for x in self.oldReviews]
+        ] + [x.link(r=True) for x in sorted(self.oldReviews, key=lambda y: y.timestamp)]
         return('\n'.join(print_list))
 
     def print_oldSecond(self):
@@ -271,7 +271,7 @@ class NomPage:
             '\n=== Old requests for 2nd opinion ===',
             ":''Nominations that have been marked requesting a second opinion" \
             +" for 7 days or longer.''"
-        ] + [x.link(r=True) for x in self.oldSecondOp]
+        ] + [x.link(r=True) for x in sorted(self.oldSecondOp, key=lambda y: y.timestamp)]
         return('\n'.join(print_list))
 
     def print_oldest(self):
@@ -279,7 +279,7 @@ class NomPage:
             '\n=== Old nominations ===\n',
             ":''All nominations that were added 30 days ago or longer, "\
             +"regardless of other activity.''",
-        ] + [x.link(image=True) for x in self.overThirty]
+        ] + [x.link(image=True) for x in sorted(self.overThirty, key=lambda y: y.timestamp)]
         return('\n'.join(print_list))
 
     def print_badnoms(self):
