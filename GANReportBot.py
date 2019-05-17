@@ -22,14 +22,15 @@ version = '2.0.0-dev'
 ########
 # Logging
 ########
-# create logger with 'spam_application'
-logger = logging.getLogger('GANRB')
-logger.setLevel(logging.DEBUG)
-# create file handler which logs even debug messages
 if live == 1:
+    logger = logging.getLogger('GANRB')
     fh = logging.FileHandler('GANRB.log')
+    config_fname = './GANRB.log'
 else:
+    logger = logging.getLogger('GANRB.beta')
     fh = logging.FileHandler('GANRB.beta.log')
+    config_fname = './GANRB_beta.log'
+logger.setLevel(logging.DEBUG)
 fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -38,7 +39,7 @@ ch.setLevel(logging.WARNING)
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%m-%d %H:%M',
-                    filename='./GANRB.log',
+                    filename=config_fname,
                     filemode='w')
 formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 fh.setFormatter(formatter)
@@ -79,7 +80,11 @@ THE SOFTWARE.
 class NomPage:
     ##Finds GAN entries and returns time stamp, title, and the following line
     def __init__(self,text):
-        self.logger = logging.getLogger('GANRB.NomPage')
+        global live
+        if live == 1:
+            self.logger = logging.getLogger('GANRB.NomPage')
+        else:
+            self.logger = logging.getLogger('GANRB.beta.NomPage')
         self.logger.info("Initializing NomPage object")
         self.raw_text = text
         self.text = text.split("\n")
@@ -224,6 +229,11 @@ class NomPage:
 
     def print_backlog_report(self):
         projectPath = '/data/project/ganreportbot/pywikibot/'
+        global live
+        if live == 1:
+            back_fname = 'backlog_report.txt'
+        else:
+            back_fname = 'beta_backlog_report.txt'
         ts = wikiTimeStamp()
         noms = self.stats['noms']
         inac = self.stats['inac']
@@ -237,7 +247,7 @@ class NomPage:
             +'[[Image:Searchtool.svg|15px|Under Review]] x '+str(orev) \
             + '; [[Image:Symbol neutral vote.svg|15px|2nd Opinion ' \
             + 'Requested]] x ' + str(scnd) + '<br />'
-        with open(projectPath+'backlog_report.txt','r') as f:
+        with open(projectPath+back_fname,'r') as f:
             backlog = [line.strip() for line in f]
         self.oldLine = backlog.pop()
         backlog.insert(0,newline)
@@ -247,7 +257,7 @@ class NomPage:
             ":''Previous daily backlogs can be viewed at the " + \
             "[[/Backlog archive|backlog archive]].''"
         ]
-        with open(projectPath+'backlog_report.txt','w') as f:
+        with open(projectPath+back_fname,'w') as f:
             log.info("Writing backlog report to file")
             f.write(backlog[1])
         return('\n'.join(backlog))
@@ -323,8 +333,12 @@ class NomPage:
 class Section:
     sctRegex = re.compile(r'==+ (.*?) (==+)')
     def __init__(self,name):
+        global live
+        if live == 1:
+            self.logger = logging.getLogger('GANRB.Section')
+        else:
+            self.logger = logging.getLogger('GANRB.beta.Section')
         self.name = name
-        self.logger = logging.getLogger('GANRB.Section')
         self.logger.info("Initializing Section object for "+name)
         self.subsections = []
 
@@ -414,7 +428,11 @@ class Entry:
         self.nominator, str
         self.number, int
         """
-        self.logger = logging.getLogger('GANRB.Entry')
+        global live
+        if live == 1:
+            self.logger = logging.getLogger('GANRB.Entry')
+        else:
+            self.logger = logging.getLogger('GANRB.beta.Entry')
         log = self.logger
         log.debug("Initializing Entry object")
         self.text = line
@@ -618,7 +636,11 @@ def checkArgs(arg):
     pass
         
 def save_pages(site,report,oldLine,oldTen):
-    log = logging.getLogger('GANRB')
+    global live
+    if live == 1:
+        log = logging.getLogger('GANRB')
+    else:
+        log = logging.getLogger('GANRB.beta')
     log.info("Saving page")
     log.debug("live == "+str(live))
     logging.info("Loading report page")
@@ -678,7 +700,11 @@ def save_pages(site,report,oldLine,oldTen):
     log.info("Finished at "+str(wikiTimeStamp()))
 
 def main():
-    log = logging.getLogger('GANRB.main')
+    global live
+    if live == 1:
+        log = logging.getLogger('GANRB.main')
+    else:
+        log = logging.getLogger('GANRB.beta.main')
     log.info("Starting run")
     log.info("### Starting new run ###")
     log.info("GANReportBot version %s" % version)
