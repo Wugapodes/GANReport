@@ -159,9 +159,9 @@ class NomPage:
         oldestnoms.sort(key=lambda x: x.timestamp)
         oldestTen = oldestnoms[:10]
         cut = dt.utcnow() - timedelta(7)
-        oldHolds = [x for x in noms if x.timestamp < cut and x.status == 'H']
-        oldRevs = [x for x in noms if x.timestamp < cut and x.status == 'R']
-        oldScnd = [x for x in noms if x.timestamp < cut and x.status == '2']
+        oldHolds = [x for x in noms if x.r_timestamp < cut and x.status == 'H']
+        oldRevs = [x for x in noms if x.r_timestamp < cut and x.status == 'R']
+        oldScnd = [x for x in noms if x.r_timestamp < cut and x.status == '2']
         self.nominations = noms  # All nominations regardless of activity.
         self.unreviewed = unrev  # Nominations not under review.
         self.overThirty = overThirty # All nominations older than 30 days
@@ -255,7 +255,7 @@ class NomPage:
     def print_oldHolds(self):
         print_list = [
             '\n=== Holds over 7 days old ==='
-        ] + [x.link(r=True) for x in sorted(self.oldOnHold, key=lambda y: y.timestamp)]
+        ] + [x.link(r=True) for x in sorted(self.oldOnHold, key=lambda y: y.r_timestamp)]
         return('\n'.join(print_list))
 
     def print_oldReviews(self):
@@ -263,7 +263,7 @@ class NomPage:
             '\n=== Old reviews ===',
             ":''Nominations that have been marked under review for 7 days or "\
             +"longer.''",
-        ] + [x.link(r=True) for x in sorted(self.oldReviews, key=lambda y: y.timestamp)]
+        ] + [x.link(r=True) for x in sorted(self.oldReviews, key=lambda y: y.r_timestamp)]
         return('\n'.join(print_list))
 
     def print_oldSecond(self):
@@ -271,7 +271,7 @@ class NomPage:
             '\n=== Old requests for 2nd opinion ===',
             ":''Nominations that have been marked requesting a second opinion" \
             +" for 7 days or longer.''"
-        ] + [x.link(r=True) for x in sorted(self.oldSecondOp, key=lambda y: y.timestamp)]
+        ] + [x.link(r=True) for x in sorted(self.oldSecondOp, key=lambda y: y.r_timestamp)]
         return('\n'.join(print_list))
 
     def print_oldest(self):
