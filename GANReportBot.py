@@ -472,6 +472,7 @@ class Entry:
         self.get_badLink()
         self.number = review_num
         log.debug(review_num)
+        self.r_timestamp = dt.utcnow()
         
     def get_badLink(self):
         if self.title != None:
