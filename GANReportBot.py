@@ -18,7 +18,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '2.0.0-dev'
+version = '2.0.1-dev'
 ########
 # Logging
 ########
@@ -114,12 +114,18 @@ class NomPage:
                     log.info("Section found: "+line.strip('=').strip())
                     sec = Section(line.strip('=').strip())
                     self.section.append(sec)
+                    if sec.name == "Miscellaneous":
+                        sec.subsections.append(None)
                 c_sec = self.section[-1]
                 continue
             elif 'GANentry' in line:  # If line is a GA nom...
-                c_sub = c_sec.subsections[-1]
+                try:
+                    c_sub = c_sec.subsections[-1]
+                    sub_name = c_sub.name
+                except:
+                    sub_name = None
                 matches=entRegex.search(line)
-                entry = Entry(matches,line,c_sub.name)
+                entry = Entry(matches,line,None)
                 c_sub.entries.append(entry)
             elif 'GAReview' in line:  # If a review template...
                 c_entry = c_sec.subsections[-1].entries[-1]
@@ -512,7 +518,10 @@ class Entry:
         if text == None:
             link = str(self)
         else:
-            sec = self.subsection
+            try:
+                sec = self.subsection
+            except:
+                sec = "Miscellaneous"
             link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
         if length:
             if r:
@@ -552,7 +561,10 @@ class Entry:
             self.r_timestamp = dt.utcnow()
 
     def __str__(self):
-        sec = self.subsection
+        try:
+            sec = self.subsection
+        except:
+            sec = "Miscellaneous"
         n = self.title
         return('[[Wikipedia:Good article nominations#'+sec+'|'+n+']]')
 
@@ -574,6 +586,75 @@ class Nominator():
         head = "'''" + self.username + "''' (" + str(n_noms) + ")"
         nomlist = ":" + ", ".join(link_list)
         return("\n".join([head,nomlist]))
+        
+        
+class TalkPage():
+    def __init__(self,page,site):
+        global live
+        self.bad = False
+        if live == 1:
+            self.logger = logging.getLogger('GANRB.TalkPage')
+        else:
+            self.logger = logging.getLogger('GANRB.beta.TalkPage')
+        log = self.logger
+        title = page.titleWithoutNamespace
+        text = page.text
+        if '{{GA nominee' not in text:
+            self.nominee = False
+        else:
+            self.nominee = True
+        self.title = title
+        self.text = text
+        nom_template = re.search(r'{{GA(?: |_)nominee\|(.*?)}}',text)
+        raw_params = nom_template.group(1)
+        raw_param_split = raw_params.split('|')
+        params = {}
+        for param_group in raw_param_split:
+            param_pair = [x.strip() for x in param_group.split('=')]
+            if len(param_pair) != 2:
+                try:
+                    ts = wiki2datetime(param_pair[0])
+                    params['nom_time'] = ts
+                except:
+                    self.bad = True
+                    log.error('Parameters of {{GA nominee}} do not make sense')
+                    log.debug(raw_params)
+            else:
+                params[param_pair[0]] = param_pair[1]
+        param_names = params.keys()
+        if 'nominator' in param_names:
+            self.nominator = params['nominator']
+        else:
+            self.nominator = None
+        if 'page' in param_names:
+            self.rev_num = int(params['page']) 
+        else:
+            self.rev_num = 1
+        if 'status' in param_names:
+            self.status = params['status']
+        else:
+            self.status = ''
+        if 'subtopic' in param_names:
+            self.subtopic = params['subtopic']
+        else:
+            self.subtopic = None # Should be Misc eventually
+        if 'note' in param_names:
+            self.note = params['note']
+        else:
+            self.note = None
+        # time argument to GA nominee not supported
+        
+        if self.status != '':
+            self.get_reviewer(site)
+        else:
+            self.reviewer = None
+            
+    def get_reviewer(self,site):
+        p_name = "Talk:"+self.title+'/GA'+str(self.rev_num)
+        page = pywikibot.Page(site,p_name)
+        rev_text = page.text
+        r = re.search(r"'''Reviewer:'''.*?User:(.*?)(?:\||])",rev_text)
+        self.reviewer = r.group(1)
 
 def wiki2datetime(wikistamp):
     time, date = wikistamp.split(', ')
@@ -718,6 +799,15 @@ def main():
     oldTen = nomPage.oldestTen
     save_pages(site,report,oldLine,oldTen)
     
+def update_GAN(site):
+    cat = pywikibot.Category(site,"Category:Good article nominees")
+    gen = pagegenerators.CategorizedPageGenerator(cat)
+    nominees = {}
+    for talkpage in gen:
+        #Do something with the page object, for example:
+        name = talkpage.titleWithoutNamespace
+        talk_object = TalkPage(talkpage)
+        nominees[name] = talk_object
 
 if __name__ == "__main__":
     main()
