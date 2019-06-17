@@ -120,12 +120,12 @@ class NomPage:
                 continue
             elif 'GANentry' in line:  # If line is a GA nom...
                 matches=entRegex.search(line)
-                try:
-                    s = c_sec.subsections[-1]
-                    sub_name = c_sub.name
-                except:
+                s = c_sec.subsections[-1]
+                if s == None:
                     s = c_sec
                     sub_name = None
+                else:
+                    sub_name = s.name
                 entry = Entry(matches,line,sub_name)
                 s.entries.append(entry)
             elif 'GAReview' in line:  # If a review template...
@@ -155,7 +155,7 @@ class NomPage:
         badnoms = []
         for sec in self.section:
             if sec.name == "Miscellaneous":
-                s = sec
+                s = [sec]
             else:
                 s = sec.subsections
             for subsec in s:
