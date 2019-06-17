@@ -119,16 +119,20 @@ class NomPage:
                 c_sec = self.section[-1]
                 continue
             elif 'GANentry' in line:  # If line is a GA nom...
+                matches=entRegex.search(line)
                 try:
-                    c_sub = c_sec.subsections[-1]
+                    s = c_sec.subsections[-1]
                     sub_name = c_sub.name
                 except:
+                    s = c_sec
                     sub_name = None
-                matches=entRegex.search(line)
-                entry = Entry(matches,line,None)
-                c_sub.entries.append(entry)
+                entry = Entry(matches,line,sub_name)
+                s.entries.append(entry)
             elif 'GAReview' in line:  # If a review template...
-                c_entry = c_sec.subsections[-1].entries[-1]
+                try:
+                    c_entry = c_sec.subsections[-1].entries[-1]
+                except:
+                    c_entry = c_sec.entries[-1]
                 if 'on hold' in line:
                     c_entry.add_review('H',line)
                 elif '2nd opinion' in line:
@@ -518,9 +522,8 @@ class Entry:
         if text == None:
             link = str(self)
         else:
-            try:
-                sec = self.subsection
-            except:
+            sec = self.subsection
+            if sec == None:
                 sec = "Miscellaneous"
             link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
         if length:
@@ -561,9 +564,8 @@ class Entry:
             self.r_timestamp = dt.utcnow()
 
     def __str__(self):
-        try:
-            sec = self.subsection
-        except:
+        sec = self.subsection
+        if sec == None:
             sec = "Miscellaneous"
         n = self.title
         return('[[Wikipedia:Good article nominations#'+sec+'|'+n+']]')
