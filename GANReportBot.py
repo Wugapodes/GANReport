@@ -154,7 +154,11 @@ class NomPage:
         noms = []
         badnoms = []
         for sec in self.section:
-            for subsec in sec.subsections:
+            if sec.name == "Miscellaneous":
+                s = sec
+            else:
+                s = sec.subsections
+            for subsec in s:
                 for entry in subsec.entries:
                     if not entry.bad:
                         noms.append(entry)
@@ -351,6 +355,7 @@ class Section:
         self.name = name
         self.logger.info("Initializing Section object for "+name)
         self.subsections = []
+        self.entries = []
 
     def link(self, image = False, text = None, num = 0):
         """I may be wrong, but I'm pretty sure there's no reason for There
@@ -368,10 +373,14 @@ class Section:
         
     def summary(self):
         subsections = self.subsections
-        n = sum([len(x.entries) for x in subsections])
-        text = "'''"+self.link(num="")+"''' ("+str(n)+")"
-        for subsec in subsections:
-            text = text + "\n" + subsec.summary()
+        if subsections[0] == None:
+            n = len(self.entries)
+            text = "'''"+self.link(num="")+"''' ("+str(n)+")"
+        else:
+            n = sum([len(x.entries) for x in subsections])
+            text = "'''"+self.link(num="")+"''' ("+str(n)+")"
+            for subsec in subsections:
+                text = text + "\n" + subsec.summary()
         return(text)
 
     def __str__(self):
