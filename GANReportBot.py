@@ -18,7 +18,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '2.0.1-dev'
+version = '2.1.0-dev'
 ########
 # Logging
 ########
@@ -242,7 +242,7 @@ class NomPage:
         return('\n'.join(print_list))
 
     def print_backlog_report(self):
-        projectPath = '/data/project/ganreportbot/pywikibot/'
+        projectPath = '/data/project/ganreportbot/'
         global live
         if live == 1:
             back_fname = 'backlog_report.txt'
@@ -503,20 +503,11 @@ class Entry:
             review_num = matches.group(2)
         except:
             log.warning("Unable to get review number")
-            self.bad = True
             log.debug(line)
             review_num = 1
-        self.get_badLink()
         self.number = review_num
         log.debug(review_num)
         self.r_timestamp = dt.utcnow()
-        
-    def get_badLink(self):
-        if self.title != None:
-            title = self.title
-        else:
-            title = "Unknown nomination"
-        self.badlink = self.link(length=False,text=title)
 
     def getUsername(self, text):
         log = self.logger
@@ -531,10 +522,14 @@ class Entry:
         if text == None:
             link = str(self)
         else:
-            sec = self.subsection
-            if sec == None:
-                sec = "Miscellaneous"
-            link = '[[Wikipedia:Good article nominations#'+sec+'|'+text+']]'
+            template = '{{GANentry|1='
+            template += text
+            template += '|2='
+            template += self.number
+            if status != None:
+                template += '|exists=yes'
+            template += '}}'
+            link = template
         if length:
             if r:
                 days = str((dt.utcnow() - self.r_timestamp).days)
@@ -573,11 +568,14 @@ class Entry:
             self.r_timestamp = dt.utcnow()
 
     def __str__(self):
-        sec = self.subsection
-        if sec == None:
-            sec = "Miscellaneous"
-        n = self.title
-        return('[[Wikipedia:Good article nominations#'+sec+'|'+n+']]')
+        template = '{{GANentry|1='
+        template += self.title
+        template += '|2='
+        template += self.number
+        if self.status != None:
+            template += '|exists=yes'
+        template += '}}'
+        return(template)
 
 
 class Nominator():
