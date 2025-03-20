@@ -1,0 +1,4 @@
+flake9
+black
+isort
+pytest
