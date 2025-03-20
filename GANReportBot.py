@@ -6,7 +6,6 @@ from datetime import date
 from datetime import timedelta
 from datetime import datetime as dt
 import datetime
-import logging
 import sys
 
 ########
@@ -19,34 +18,6 @@ live = 0
 # Version Number
 ########
 version = '2.1.0-dev'
-########
-# Logging
-########
-if live == 1:
-    logger = logging.getLogger('GANRB')
-    fh = logging.FileHandler('GANRB.log')
-    config_fname = './GANRB.log'
-else:
-    logger = logging.getLogger('GANRB.beta')
-    fh = logging.FileHandler('GANRB.beta.log')
-    config_fname = './GANRB_beta.log'
-logger.setLevel(logging.DEBUG)
-fh.setLevel(logging.DEBUG)
-# create console handler with a higher log level
-ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING)
-# create formatter and add it to the handlers
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%m-%d %H:%M',
-                    filename=config_fname,
-                    filemode='w')
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-# add the handlers to the logger
-logger.addHandler(fh)
-logger.addHandler(ch)
 
 entRegex = re.compile(
     r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
@@ -81,11 +52,6 @@ class NomPage:
     ##Finds GAN entries and returns time stamp, title, and the following line
     def __init__(self,text):
         global live
-        if live == 1:
-            self.logger = logging.getLogger('GANRB.NomPage')
-        else:
-            self.logger = logging.getLogger('GANRB.beta.NomPage')
-        self.logger.info("Initializing NomPage object")
         self.raw_text = text
         self.text = text.split("\n")
         self.section = []
@@ -98,20 +64,15 @@ class NomPage:
         }
 
     def parse(self,text=None, organize=True, noms=True):
-        log = self.logger
-        log.info("Parsing nomination page")
         if text == None:
             text = self.text
         for line in text:
-            log.debug(line)
             if '==' in line:  # If line is a (sub-)section heading...
                 line = line.strip()
                 if '===' in line:  # If line is a subsection heading...
-                    log.info("Subsection found: "+line.strip('=').strip())
                     subsec = SubSection(line.strip('=').strip(),c_sec)
                     self.section[-1].subsections.append(subsec)
                 else: # If line is a section heading...
-                    log.info("Section found: "+line.strip('=').strip())
                     sec = Section(line.strip('=').strip())
                     self.section.append(sec)
                     if sec.name == "Miscellaneous":
@@ -145,12 +106,11 @@ class NomPage:
             try:
                 self.nominator_stats()
             except AttributeError as e:
-                log.error("Cannot get nominator stats without" \
-                                + "organizing nominations")
+                # Logging removed 3-19-2025 but should this be silent?
+                # When does it even run?
+                pass
 
     def organize_noms(self):
-        log = self.logger
-        log.info("Organizing nominations")
         noms = []
         badnoms = []
         for sec in self.section:
@@ -193,8 +153,6 @@ class NomPage:
 
     def nominator_stats(self):
         """Assumes self.organize_noms() has already been run."""
-        log = self.logger
-        log.info("Calculating nominator stats")
         nominations = self.nominations
         nominators = {}
         nom_list = []
@@ -207,25 +165,26 @@ class NomPage:
         self.nominators = nominators
 
     def write_report(self):
+        """I think this just writes the whole report out"""
         global version
-        log = self.logger
         report = "{{/top}}\n\n"
-        log.debug("Writing oldest ten")
+
         oldestTen = self.print_oldest_ten()
-        log.debug("Writing report")
+
         backlog_report = self.print_backlog_report()
+
         er_sec = "\n== Exceptions report ==\n"
-        log.debug("Writing exceptions report")
         oldHolds = self.print_oldHolds()
         oldRevs = self.print_oldReviews()
         oldScnd = self.print_oldSecond()
         oldest = self.print_oldest()
         badnoms = self.print_badnoms()
         multinoms = self.print_noms()
+
         sum_sec = "\n== Summary ==\n"
-        log.debug("Writing summary")
         summary = self.print_section_summary()
-        log.debug("Concatenating reports")
+
+        # Concatenate report sections
         report = report + oldestTen + backlog_report + er_sec + oldHolds 
         report = report + oldRevs + oldScnd + oldest + badnoms + multinoms  
         report = report + sum_sec + summary + '<!-- Updated at '
@@ -254,7 +213,6 @@ class NomPage:
         ohld = self.stats['ohld']
         orev = self.stats['orev']
         scnd = self.stats['scnd']
-        log = self.logger
         newline = ts+' &ndash; '+str(noms)+' nominations outstanding; ' \
             + str(inac) + ' not reviewed; ' \
             + '[[Image:Symbol wait.svg|15px|On Hold]] x ' + str(ohld) + '; '\
@@ -272,7 +230,6 @@ class NomPage:
             "[[/Backlog archive|backlog archive]].''"
         ]
         with open(projectPath+back_fname,'w') as f:
-            log.info("Writing backlog report to file")
             f.write(backlog[1])
         return('\n'.join(backlog))
 
@@ -348,12 +305,7 @@ class Section:
     sctRegex = re.compile(r'==+ (.*?) (==+)')
     def __init__(self,name):
         global live
-        if live == 1:
-            self.logger = logging.getLogger('GANRB.Section')
-        else:
-            self.logger = logging.getLogger('GANRB.beta.Section')
         self.name = name
-        self.logger.info("Initializing Section object for "+name)
         self.subsections = []
         self.entries = []
 
@@ -448,12 +400,6 @@ class Entry:
         self.number, int
         """
         global live
-        if live == 1:
-            self.logger = logging.getLogger('GANRB.Entry')
-        else:
-            self.logger = logging.getLogger('GANRB.beta.Entry')
-        log = self.logger
-        log.debug("Initializing Entry object")
         self.text = line
         self._matches = matches
         self.status = None
@@ -462,56 +408,40 @@ class Entry:
         self.badlink = None
         subsSectName = subsection #subsection.name
         
-        log.debug("Getting title")
+        # Get title
         try:
             title = matches.group(1)
         except:
-            log.warning("Unable to get title")
-            log.debug(line)
             self.bad = True
             title = None
         self.title = title
-        log.debug(title)
         
-        log.debug("Getting timestamp")
+        # Get timestamp
         try:
             t = matches.group(4)
             time = wiki2datetime(t)
             l = True
         except:
-            log.warning("Unable to get timestamp")
-            log.debug(line)
             self.bad = True
             time = None
             l = False
         self.timestamp = time
-        log.debug(time)
         
-        log.debug("Getting username")
         try:
             username = self.getUsername(matches.group(3))
         except Exception as e:
-            log.warning("Unable to get username")
             self.bad = True
-            log.debug(line)
             username = None
         self.nominator = username
-        log.debug(username)
         
-        log.debug("Getting review number")
         try:
             review_num = matches.group(2)
         except:
-            log.warning("Unable to get review number")
-            log.debug(line)
             review_num = 1
         self.number = review_num
-        log.debug(review_num)
         self.r_timestamp = dt.utcnow()
 
     def getUsername(self, text):
-        log = self.logger
-        log.debug(text)
         if '[[User' in text:
             name = re.search(r'\[\[User.*?:(.*?)(?:\||\]\])',text).group(1)
             return(name)
@@ -553,8 +483,6 @@ class Entry:
         return(string)
         
     def add_review(self,status,line):
-        log = self.logger
-        log.info("Adding review")
         self.status = status
         matches = reviewRegex.search(line)
         try:
@@ -562,9 +490,7 @@ class Entry:
             time = wiki2datetime(t)
             self.r_timestamp = time
         except:
-            log.warning("Cannot get review time")
             self.bad = True
-            log.debug(line)
             self.r_timestamp = dt.utcnow()
 
     def __str__(self):
@@ -601,11 +527,6 @@ class TalkPage():
     def __init__(self,page,site):
         global live
         self.bad = False
-        if live == 1:
-            self.logger = logging.getLogger('GANRB.TalkPage')
-        else:
-            self.logger = logging.getLogger('GANRB.beta.TalkPage')
-        log = self.logger
         title = page.titleWithoutNamespace
         text = page.text
         if '{{GA nominee' not in text:
@@ -626,8 +547,6 @@ class TalkPage():
                     params['nom_time'] = ts
                 except:
                     self.bad = True
-                    log.error('Parameters of {{GA nominee}} do not make sense')
-                    log.debug(raw_params)
             else:
                 params[param_pair[0]] = param_pair[1]
         param_names = params.keys()
@@ -727,46 +646,40 @@ def checkArgs(arg):
         
 def save_pages(site,report,oldLine,oldTen):
     global live
-    if live == 1:
-        log = logging.getLogger('GANRB')
-    else:
-        log = logging.getLogger('GANRB.beta')
-    log.info("Saving page")
-    log.debug("live == "+str(live))
-    logging.info("Loading report page")
     try:
         page = pywikibot.Page(site,'Wikipedia:Good article nominations/Report')
     except:
-        log.critical("Could not load report page!")
+        # Logging removed 3-19-2025 but this should almost certainly not be silent...
+        #  but then why did it handle the exception?
+        pass
     # Determine if the bot should write to a live page or the test page. Defaults to
     #     test page. Value of -1 tests backlog update (not standard because the file
     #     size is very big).
     if live == 0:
-        log.info("Live set to 0, no pages written")
         pass
     elif live == 1:
-        log.info("Saving Report")
         page.text=report
         try:
             page.save('Updating exceptions report, WugBot v'+version)
         except:
-            log.critical("Could not save to report page!")
-        log.info("Saving backlog archive")
+            # Logging removed 3-19-2025 but this should almost certainly not be silent...
+            #  but then why did it handle the exception?
+            pass
         try:
             page = pywikibot.Page(site,'Wikipedia:Good article nominations/' \
                                         +'Report/Backlog archive')
         except:
-            log.critical("Could not load backlog archive")
+            # Logging removed 3-19-2025 but this should almost certainly not be silent...
+            #  but then why did it handle the exception?
+            pass
         page.text+='\n'+oldLine
         page.save('Update of GAN report backlog, WugBot v'+version)
     else:
-        logging.info("Writing to test page")
         page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
         page.text=report
         page.save('Testing WugBot v'+version)
 
     # Update the transcluded list of the 5 oldest noms
-    log.info("Updating oldest 5 list")
     links = []
     for ent in oldTen:
         links.append(ent.link(length=False,num=False))
@@ -783,22 +696,12 @@ def save_pages(site,report,oldLine,oldTen):
         page.text = pText
         page.save('Updating list of oldest noms. WugBot v%s' % version)
     else:
-        log.debug('Writing to items test page')
         page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/items')
         page.text = pText
         page.save('Testing WugBot v%s' % version)
-    log.info("Finished at "+str(wikiTimeStamp()))
 
 def main():
     global live
-    if live == 1:
-        log = logging.getLogger('GANRB.main')
-    else:
-        log = logging.getLogger('GANRB.beta.main')
-    log.info("Starting run")
-    log.info("### Starting new run ###")
-    log.info("GANReportBot version %s" % version)
-    log.debug("live is set to %s" % live)
     site = pywikibot.Site('en', 'wikipedia')
     page = pywikibot.Page(site,'Wikipedia:Good article nominations')
     nomPage = NomPage(page.text)
