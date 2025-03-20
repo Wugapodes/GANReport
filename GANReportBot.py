@@ -1,4 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""Produceds a report on English Wikipedia's Good Article Project Backlog
+"""
 
 import pywikibot
 import re
@@ -8,16 +12,20 @@ from datetime import datetime as dt
 import datetime
 import sys
 
+__author__ = "Wugapodes"
+__copyright__ = "Copyright 2019-2025, Wugapodes"
+__license__ = "MIT"
+__version__ = "3.0.0-dev"
+__maintainer__ = "Wugapodes"
+__email__ = "wugapodes@gmail.com"
+__status__ = "Development"
+
 ########
 # Changing this to 1 makes your changes live on the report page, do not set to
 # live mode unless you have been approved for bot usage. Do not merge commits
 # where this is not default to 0
 ########
 live = 0
-########
-# Version Number
-########
-version = '2.1.0-dev'
 
 entRegex = re.compile(
     r'{{GANentry.*?\|1=(.*?)\|2=(\d+).*?}}\s*(.*?) (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
@@ -26,27 +34,6 @@ reviewRegex = re.compile(
     r'{{GAReview.*?}}\s*.*?\[\[User\:(.*?)(?:\||\]\]).*? (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)'
     )
     
-'''
-Copyright (c) 2019 Wugpodes
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-'''
 
 class NomPage:
     ##Finds GAN entries and returns time stamp, title, and the following line
@@ -166,7 +153,6 @@ class NomPage:
 
     def write_report(self):
         """I think this just writes the whole report out"""
-        global version
         report = "{{/top}}\n\n"
 
         oldestTen = self.print_oldest_ten()
@@ -188,7 +174,7 @@ class NomPage:
         report = report + oldestTen + backlog_report + er_sec + oldHolds 
         report = report + oldRevs + oldScnd + oldest + badnoms + multinoms  
         report = report + sum_sec + summary + '<!-- Updated at '
-        report = report + wikiTimeStamp()+' by WugBot v'+version+' -->\n'
+        report = report + wikiTimeStamp()+' by WugBot v'+__version__+' -->\n'
         return(report)
 
     def print_oldest_ten(self):
@@ -660,7 +646,7 @@ def save_pages(site,report,oldLine,oldTen):
     elif live == 1:
         page.text=report
         try:
-            page.save('Updating exceptions report, WugBot v'+version)
+            page.save('Updating exceptions report, WugBot v'+__version__)
         except:
             # Logging removed 3-19-2025 but this should almost certainly not be silent...
             #  but then why did it handle the exception?
@@ -673,11 +659,11 @@ def save_pages(site,report,oldLine,oldTen):
             #  but then why did it handle the exception?
             pass
         page.text+='\n'+oldLine
-        page.save('Update of GAN report backlog, WugBot v'+version)
+        page.save('Update of GAN report backlog, WugBot v'+__version__)
     else:
         page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest')
         page.text=report
-        page.save('Testing WugBot v'+version)
+        page.save('Testing WugBot v'+__version__)
 
     # Update the transcluded list of the 5 oldest noms
     links = []
@@ -694,11 +680,11 @@ def save_pages(site,report,oldLine,oldTen):
     elif live == 1:
         page = pywikibot.Page(site,'Wikipedia:Good article nominations/backlog/items')
         page.text = pText
-        page.save('Updating list of oldest noms. WugBot v%s' % version)
+        page.save('Updating list of oldest noms. WugBot v%s' % __version__)
     else:
         page = pywikibot.Page(site,'User:Wugapodes/GANReportBotTest/items')
         page.text = pText
-        page.save('Testing WugBot v%s' % version)
+        page.save('Testing WugBot v%s' % __version__)
 
 def main():
     global live
