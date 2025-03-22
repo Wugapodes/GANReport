@@ -180,8 +180,8 @@ class NomPage:
         oldest = self.oldestTen
         print_list = [
             "== Oldest nominations ==",
-            "''List of the oldest ten nominations that have had no activity ",
-            "(placed on hold, under review or requesting a 2nd opinion)''",
+            "''List of the oldest ten nominations that have had no activity " \
+                + "(placed on hold, under review or requesting a 2nd opinion)''",
         ] + [x.link() for x in oldest]
         return "\n".join(print_list)
 
@@ -270,7 +270,7 @@ class NomPage:
     def print_badnoms(self):
         n_bad = len(self.badNoms)
         if n_bad < 1:
-            subhead = ""
+            subhead = "None."
         elif n_bad > 1:
             subhead = (
                 ":''There are currently " + str(n_bad) + " malformed nominations.''"
@@ -291,7 +291,7 @@ class NomPage:
                 nom_list.append(v)
         nom_list.sort(key=lambda nominator: len(nominator.entries), reverse=True)
         nom_list = [x.print_noms() for x in nom_list]
-        head = "\n=== Nominators with multiple nominations ==="
+        head = "\n== Nominators with multiple nominations =="
         print_list = [head, "\n".join(nom_list)]
         return "\n".join(print_list)
 
