@@ -1,0 +1,36 @@
+# Python bytecode & caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+
+# Build & distribution
+build/
+dist/
+*.egg-info/
+
+# Logs & temp files
+*.log
+logs/
+debug.log
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp  # Vim swap files
+*.swo
+*.swn
+
+# Testing & linting
+.mypy_cache/
+pytest_cache/
+.coverage
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
