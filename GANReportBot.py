@@ -373,6 +373,11 @@ class Section:
         
     def summary(self):
         subsections = self.subsections
+        if len(subsections) < 1:
+            # The "Errors" section at GAN causes this to fail so just skip for now
+            # but see bugs #2 and #3
+            # -Wug 3/28/2025
+            return('')
         if subsections[0] == None:
             n = len(self.entries)
             text = "'''"+self.link(num="")+"''' ("+str(n)+")"
