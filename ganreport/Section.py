@@ -15,6 +15,7 @@ __status__ = "Development"
 
 
 class Section:
+    # This isn't used? 3/29/25
     sctRegex = re.compile(r"==+ (.*?) (==+)")
 
     def __init__(self, name):

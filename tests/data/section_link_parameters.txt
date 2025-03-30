@@ -1,0 +1,10 @@
+False, WugTest, 0
+False, WugTest, 10
+False, WugTest, 100
+False, WugTest, -10
+True, WugTest, 0
+True, WugTest, 10
+True, WugTest, 100
+True, WugTest, -10
+False, None, 0
+True, None, 0
