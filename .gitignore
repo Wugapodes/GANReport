@@ -34,3 +34,7 @@ Thumbs.db
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+# pywikibot
+throttle.ctrl
+apicache

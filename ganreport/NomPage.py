@@ -5,6 +5,7 @@
 
 from datetime import datetime as dt
 from datetime import timedelta
+from os.path import join
 
 from ganreport.Entry import Entry
 from ganreport.Nominator import Nominator
@@ -23,7 +24,6 @@ __status__ = "Development"
 class NomPage:
     # Finds GAN entries and returns time stamp, title, and the following line
     def __init__(self, text):
-        global live
         self.raw_text = text
         self.text = text.split("\n")
         self.section = []
@@ -136,13 +136,18 @@ class NomPage:
             n_obj.add(entry)
         self.nominators = nominators
 
-    def write_report(self):
+    def write_report(self, write_mode, archive_path):
         """I think this just writes the whole report out"""
         report = "{{/top}}\n\n"
 
         oldestTen = self.print_oldest_ten()
 
-        backlog_report = self.print_backlog_report()
+        if write_mode == "prod":
+            backlog_report_filename = "backlog_report.txt"
+        else:
+            backlog_report_filename = "beta_backlog_report.txt"
+        backlog_report_path = join(archive_path, backlog_report_filename)
+        backlog_report = self.print_backlog_report(backlog_report_path)
 
         er_sec = "\n== Exceptions report ==\n"
         oldHolds = self.print_oldHolds()
@@ -171,13 +176,7 @@ class NomPage:
         ] + [x.link() for x in oldest]
         return "\n".join(print_list)
 
-    def print_backlog_report(self):
-        projectPath = "/data/project/ganreportbot/"
-        global live
-        if live == 1:
-            back_fname = "backlog_report.txt"
-        else:
-            back_fname = "beta_backlog_report.txt"
+    def print_backlog_report(self, backlog_report_path):
         ts = wikiTimeStamp()
         noms = self.stats["noms"]
         inac = self.stats["inac"]
@@ -201,7 +200,7 @@ class NomPage:
             + str(scnd)
             + "<br />"
         )
-        with open(projectPath + back_fname, "r") as f:
+        with open(backlog_report_path, "r") as f:
             backlog = [line.strip() for line in f]
         self.oldLine = backlog.pop()
         backlog.insert(0, newline)
@@ -211,7 +210,7 @@ class NomPage:
             ":''Previous daily backlogs can be viewed at the "
             + "[[/Backlog archive|backlog archive]].''",
         ]
-        with open(projectPath + back_fname, "w") as f:
+        with open(backlog_report_path, "w") as f:
             f.write(backlog[1])
         return "\n".join(backlog)
 
