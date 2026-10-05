@@ -321,12 +321,19 @@ class NomPage:
         print_list = [
             '\n=== Malformed nominations ===',
             subhead,
-        ] + [x.link(length=False) for x in self.badNoms]
+        ]
+        for badnom in self.badNoms:
+            if badnom.badreview:
+                badlink = badnom.link(length=False,coda="- malformed review")
+            else:
+                badlink = badnom.link(length=False)
+            print_list.append(badlink)
         try:
             return('\n'.join(print_list))
         except Exception as e:
-            print(print_list)
-            print(self.badNoms)
+            log.warning("Cannot make malformed nominations list")
+            log.debug(print_list)
+            log.debug([x.title for x in self.badNoms])
             raise(e)
 
     def print_noms(self,cutoff=3):
@@ -472,6 +479,7 @@ class Entry:
         self.status = None
         self.subsection = subsection
         self.bad = False
+        self.badreview = False
         self.badlink = None
         subsSectName = subsection #subsection.name
         
@@ -540,7 +548,7 @@ class Entry:
         else:
             raise ValueError('Could not get username.')
 
-    def link(self, image = False, length = True, text = None, num=True, r=False):
+    def link(self, image = False, length = True, text = None, num=True, r=False, coda=""):
         if text == None:
             link = str(self)
         else:
@@ -572,6 +580,8 @@ class Entry:
             string = img+link
         if length:
             string = string+" ('''"+days+"''' days)"
+        if coda:
+            string = string + " " + coda
         return(string)
         
     def add_review(self,status,line):
@@ -586,6 +596,7 @@ class Entry:
         except:
             log.warning("Cannot get review time")
             self.bad = True
+            self.badreview = True
             log.debug(line)
             self.r_timestamp = dt.utcnow()
 
