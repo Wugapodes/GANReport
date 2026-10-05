@@ -18,7 +18,7 @@ live = 0
 ########
 # Version Number
 ########
-version = '2.2.0-dev'
+version = '2.2.1-dev'
 ########
 # Logging
 ########
@@ -307,7 +307,10 @@ class NomPage:
         return('\n'.join(print_list))
 
     def print_badnoms(self):
+        log = self.logger
         n_bad = len(self.badNoms)
+        log.debug([x.title for x in self.badNoms])
+        log.debug([x.link() for x in self.badNoms])
         if n_bad < 1:
             subhead = "None."
         elif n_bad > 1:
@@ -318,8 +321,13 @@ class NomPage:
         print_list = [
             '\n=== Malformed nominations ===',
             subhead,
-        ] + [x.badlink for x in self.badNoms]
-        return('\n'.join(print_list))
+        ] + [x.link(length=False) for x in self.badNoms]
+        try:
+            return('\n'.join(print_list))
+        except Exception as e:
+            print(print_list)
+            print(self.badNoms)
+            raise(e)
 
     def print_noms(self,cutoff=3):
         nominators = self.nominators
@@ -513,6 +521,15 @@ class Entry:
         self.number = review_num
         log.debug(review_num)
         self.r_timestamp = dt.utcnow()
+
+        if self.bad:
+            try:
+                log.debug("Making malformed nomination link")
+                self.badlink = self.link()
+            except:
+                log.warning("Unable to make malformed nomination link")
+                self.badlink = self.title
+                log.debug(self.text)
 
     def getUsername(self, text):
         log = self.logger
