@@ -27,6 +27,7 @@ class Entry:
         self.subsection, userinput
         self.bad, bool
         self.badlink, str or None
+        self.badreview, bool
         self.title, str or None
         self.timestamp, datetime.datetime instance or None
         self.nominator, str
@@ -39,6 +40,7 @@ class Entry:
         self.subsection = subsection
         self.bad = False
         self.badlink = None
+        self.badreview = False
         subsSectName = subsection  # subsection.name
 
         # Get title
@@ -72,6 +74,15 @@ class Entry:
         self.number = review_num
         self.r_timestamp = dt.utcnow()
 
+        if self.bad:
+            try:
+                log.debug("Making malformed nomination link")
+                self.badlink = self.link()
+            except:
+                log.warning("Unable to make malformed nomination link")
+                self.badlink = self.title
+                log.debug(self.text)
+
     def getUsername(self, text):
         if "[[User" in text:
             name = re.search(r"\[\[User.*?:(.*?)(?:\||\]\])", text).group(1)
@@ -79,7 +90,7 @@ class Entry:
         else:
             raise ValueError("Could not get username.")
 
-    def link(self, image=False, length=True, text=None, num=True, r=False):
+    def link(self, image=False, length=True, text=None, num=True, r=False, coda=""):
         if text is None:
             link = str(self)
         else:
@@ -110,6 +121,8 @@ class Entry:
             string = img + link
         if length:
             string = string + " ('''" + days + "''' days)"
+        if coda:
+            string = string + " " + coda
         return string
 
     def add_review(self, status, line):
@@ -121,6 +134,7 @@ class Entry:
             self.r_timestamp = time
         except:
             self.bad = True
+            self.badreview = True
             self.r_timestamp = dt.utcnow()
 
     def __str__(self):

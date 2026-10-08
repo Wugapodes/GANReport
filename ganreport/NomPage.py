@@ -253,7 +253,10 @@ class NomPage:
         return "\n".join(print_list)
 
     def print_badnoms(self):
+        # log = self.logger
         n_bad = len(self.badNoms)
+        # log.debug([x.title for x in self.badNoms])
+        # log.debug([x.link() for x in self.badNoms])
         if n_bad < 1:
             subhead = "None."
         elif n_bad > 1:
@@ -265,8 +268,20 @@ class NomPage:
         print_list = [
             "\n=== Malformed nominations ===",
             subhead,
-        ] + [x.badlink for x in self.badNoms]
-        return "\n".join(print_list)
+        ]
+        for badnom in self.badNoms:
+            if badnom.badreview:
+                badlink = badnom.link(length=False, coda="- malformed review")
+            else:
+                badlink = badnom.link(length=False)
+            print_list.append(badlink)
+        try:
+            return "\n".join(print_list)
+        except Exception as e:
+            log.warning("Cannot make malformed nominations list")
+            log.debug(print_list)
+            log.debug([x.title for x in self.badNoms])
+            raise (e)
 
     def print_noms(self, cutoff=3):
         nominators = self.nominators
