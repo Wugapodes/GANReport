@@ -3,6 +3,8 @@
 
 """Produceds a report on English Wikipedia's Good Article Project Backlog"""
 
+import logging
+
 __author__ = "Wugapodes"
 __copyright__ = "Copyright 2019-2025, Wugapodes"
 __license__ = "MIT"
@@ -11,13 +13,17 @@ __maintainer__ = "Wugapodes"
 __email__ = "wugapodes@gmail.com"
 __status__ = "Development"
 
+log = logging.getLogger(__name__)
+
 
 class Nominator:
     def __init__(self, name):
+        log.debug("Nominator: " + name)
         self.username = name
         self.entries = []
 
     def add(self, content, index=0):
+        log.debug("Adding nomination")
         self.entries.insert(index, content)
 
     def print_noms(self):

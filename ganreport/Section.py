@@ -3,6 +3,7 @@
 
 """Produceds a report on English Wikipedia's Good Article Project Backlog"""
 
+import logging
 import re
 
 __author__ = "Wugapodes"
@@ -13,14 +14,17 @@ __maintainer__ = "Wugapodes"
 __email__ = "wugapodes@gmail.com"
 __status__ = "Development"
 
+log = logging.getLogger(__name__)
+
 
 class Section:
     # This isn't used? 3/29/25
     sctRegex = re.compile(r"==+ (.*?) (==+)")
 
     def __init__(self, name):
-        global live
+        log.info("Creating Section instance")
         self.name = name
+        log.debug(name)
         self.subsections = []
         self.entries = []
 
@@ -69,6 +73,8 @@ class SubSection(Section):
     def link(self, image=False, text=None):
         ####  This still needs modification so it actually creates the format
         ####    seen on the report pages.
+        # What does this old comment mean? At this point it's been a decade of
+        # this format so it's now the standard I guess... 10/7/2026
         if text is None:
             link = str(self)
         else:

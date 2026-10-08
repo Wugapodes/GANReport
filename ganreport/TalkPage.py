@@ -3,6 +3,7 @@
 
 """Produceds a report on English Wikipedia's Good Article Project Backlog"""
 
+import logging
 import re
 
 import pywikibot
@@ -16,6 +17,8 @@ __version__ = "3.0.0-dev"
 __maintainer__ = "Wugapodes"
 __email__ = "wugapodes@gmail.com"
 __status__ = "Development"
+
+log = logging.getLogger(__name__)
 
 
 class TalkPage:
@@ -40,7 +43,7 @@ class TalkPage:
                 try:
                     ts = wiki2datetime(param_pair[0])
                     params["nom_time"] = ts
-                except:
+                except Exception:
                     self.bad = True
             else:
                 params[param_pair[0]] = param_pair[1]
@@ -73,8 +76,12 @@ class TalkPage:
             self.reviewer = None
 
     def get_reviewer(self, site):
+        log.info("Reading talk page")
         p_name = "Talk:" + self.title + "/GA" + str(self.rev_num)
+        log.debug(p_name)
         page = pywikibot.Page(site, p_name)
         rev_text = page.text
+        log.info("Getting reviewer")
         r = re.search(r"'''Reviewer:'''.*?User:(.*?)(?:\||])", rev_text)
+        log.debug(r)
         self.reviewer = r.group(1)

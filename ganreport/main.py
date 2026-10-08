@@ -4,6 +4,7 @@
 """Produceds a report on English Wikipedia's Good Article Project Backlog"""
 
 import argparse
+import logging
 
 import pywikibot
 
@@ -19,33 +20,16 @@ __status__ = "Development"
 
 
 def save_pages(site, report, oldLine, oldTen, write_mode):
-    try:
-        page = pywikibot.Page(site, "Wikipedia:Good article nominations/Report")
-    except:
-        # Logging removed 3-19-2025 but this should almost certainly not be silent...
-        #  but then why did it handle the exception?
-        pass
-    # Determine if the bot should write to a live page or the test page. Defaults to
-    #     test page. Value of -1 tests backlog update (not standard because the file
-    #     size is very big).
+    page = pywikibot.Page(site, "Wikipedia:Good article nominations/Report")
+    # Determine if the bot should write to a live page or the test page.
     if write_mode == "dry_run":
         pass
     elif write_mode == "prod":
         page.text = report
-        try:
-            page.save("Updating exceptions report, WugBot v" + __version__)
-        except:
-            # Logging removed 3-19-2025 but this should almost certainly not be silent...
-            #  but then why did it handle the exception?
-            pass
-        try:
-            page = pywikibot.Page(
-                site, "Wikipedia:Good article nominations/Report/Backlog archive"
-            )
-        except:
-            # Logging removed 3-19-2025 but this should almost certainly not be silent...
-            #  but then why did it handle the exception?
-            pass
+        page.save("Updating exceptions report, WugBot v" + __version__)
+        page = pywikibot.Page(
+            site, "Wikipedia:Good article nominations/Report/Backlog archive"
+        )
         page.text += "\n" + oldLine
         page.save("Update of GAN report backlog, WugBot v" + __version__)
     elif write_mode == "sandbox":
@@ -77,7 +61,7 @@ def save_pages(site, report, oldLine, oldTen, write_mode):
         page.save("Testing WugBot v%s" % __version__)
 
 
-def main():
+def standard_args():
     parser = argparse.ArgumentParser(description="Good Article Nomination Report")
     parser.add_argument(
         "--write_mode",
@@ -92,7 +76,23 @@ def main():
         help="Path which contains the backlog_report.txt and beta_backlog_report.txt",
     )
 
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Set logging level to DEBUG"
+    )
+    return parser
+
+
+def main():
+    parser = standard_args()
     args = parser.parse_args()
+
+    logging.basicConfig(
+        filename="GANReportBot.log"
+        if args.write_mode == "prod"
+        else "Test.GANReportBot.log",
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(levelname)s:%(name)s:%(message)s",
+    )
 
     write_mode = args.write_mode
     archive_path = args.archive_path

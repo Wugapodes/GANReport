@@ -3,6 +3,7 @@
 
 """Produceds a report on English Wikipedia's Good Article Project Backlog"""
 
+import logging
 from datetime import datetime as dt
 from datetime import timedelta
 from os.path import join
@@ -20,10 +21,13 @@ __maintainer__ = "Wugapodes"
 __email__ = "wugapodes@gmail.com"
 __status__ = "Development"
 
+log = logging.getLogger(__name__)
+
 
 class NomPage:
     # Finds GAN entries and returns time stamp, title, and the following line
     def __init__(self, text):
+        log.info("Creating NomPage instance")
         self.raw_text = text
         self.text = text.split("\n")
         self.section = []
@@ -36,26 +40,31 @@ class NomPage:
         }
 
     def parse(self, text=None, organize=True, noms=True):
+        log.info("Parsing nomination page")
+        current_sec = None
         if text is None:
             text = self.text
         for line in text:
             if "==" in line:  # If line is a (sub-)section heading...
                 line = line.strip()
+                s_name = line.strip("=").strip()
                 if "===" in line:  # If line is a subsection heading...
-                    subsec = SubSection(line.strip("=").strip(), c_sec)
+                    log.info("Subsection found: " + s_name)
+                    subsec = SubSection(s_name, current_sec)
                     self.section[-1].subsections.append(subsec)
                 else:  # If line is a section heading...
-                    sec = Section(line.strip("=").strip())
+                    log.info("Section found: " + s_name)
+                    sec = Section(s_name)
                     self.section.append(sec)
                     if sec.name == "Miscellaneous":
                         sec.subsections.append(None)
-                c_sec = self.section[-1]
+                current_sec = self.section[-1]
                 continue
             elif "GANentry" in line:  # If line is a GA nom...
                 matches = entRegex.search(line)
-                s = c_sec.subsections[-1]
+                s = current_sec.subsections[-1]
                 if s is None:
-                    s = c_sec
+                    s = current_sec
                     sub_name = None
                 else:
                     sub_name = s.name
@@ -63,9 +72,9 @@ class NomPage:
                 s.entries.append(entry)
             elif "GAReview" in line:  # If a review template...
                 try:
-                    c_entry = c_sec.subsections[-1].entries[-1]
-                except:
-                    c_entry = c_sec.entries[-1]
+                    c_entry = current_sec.subsections[-1].entries[-1]
+                except Exception:
+                    c_entry = current_sec.entries[-1]
                 if "on hold" in line:
                     c_entry.add_review("H", line)
                 elif "2nd opinion" in line:
@@ -78,11 +87,11 @@ class NomPage:
             try:
                 self.nominator_stats()
             except AttributeError:
-                # Logging removed 3-19-2025 but should this be silent?
-                # When does it even run?
-                pass
+                # When does this even run? 10-07-2026
+                log.error("Cannot get nominator stats without organizing nominations")
 
     def organize_noms(self):
+        log.info("Organizing nominations")
         noms = []
         badnoms = []
         for sec in self.section:
@@ -125,6 +134,7 @@ class NomPage:
 
     def nominator_stats(self):
         """Assumes self.organize_noms() has already been run."""
+        log.info("Calculating nominator stats")
         nominations = self.nominations
         nominators = {}
         # nom_list = [] # Why is this not used? 3-19-2025
@@ -150,6 +160,7 @@ class NomPage:
         backlog_report = self.print_backlog_report(backlog_report_path)
 
         er_sec = "\n== Exceptions report ==\n"
+        log.debug("Generate reports")
         oldHolds = self.print_oldHolds()
         oldRevs = self.print_oldReviews()
         oldScnd = self.print_oldSecond()
@@ -161,6 +172,7 @@ class NomPage:
         summary = self.print_section_summary()
 
         # Concatenate report sections
+        log.debug("Concatenating reports")
         report = report + oldestTen + backlog_report + er_sec + oldHolds
         report = report + oldRevs + oldScnd + oldest + badnoms + multinoms
         report = report + sum_sec + summary + "<!-- Updated at "
@@ -211,6 +223,8 @@ class NomPage:
             + "[[/Backlog archive|backlog archive]].''",
         ]
         with open(backlog_report_path, "w") as f:
+            log.info("Writing backlog report to file")
+            log.debug(backlog_report_path)
             f.write(backlog[1])
         return "\n".join(backlog)
 
@@ -253,10 +267,9 @@ class NomPage:
         return "\n".join(print_list)
 
     def print_badnoms(self):
-        # log = self.logger
         n_bad = len(self.badNoms)
-        # log.debug([x.title for x in self.badNoms])
-        # log.debug([x.link() for x in self.badNoms])
+        log.debug([x.title for x in self.badNoms])
+        log.debug([x.link() for x in self.badNoms])
         if n_bad < 1:
             subhead = "None."
         elif n_bad > 1:

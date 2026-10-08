@@ -7,7 +7,7 @@ import datetime
 import re
 
 __author__ = "Wugapodes"
-__copyright__ = "Copyright 2019-2025, Wugapodes"
+__copyright__ = "Copyright 2019-2026, Wugapodes"
 __license__ = "MIT"
 __version__ = "3.0.0-dev"
 __maintainer__ = "Wugapodes"

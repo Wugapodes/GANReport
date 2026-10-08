@@ -3,18 +3,21 @@
 
 """Produceds a report on English Wikipedia's Good Article Project Backlog"""
 
+import logging
 import re
 from datetime import datetime as dt
 
 from ganreport.utils import reviewRegex, wiki2datetime
 
 __author__ = "Wugapodes"
-__copyright__ = "Copyright 2019-2025, Wugapodes"
+__copyright__ = "Copyright 2019-2026, Wugapodes"
 __license__ = "MIT"
 __version__ = "3.0.0-dev"
 __maintainer__ = "Wugapodes"
 __email__ = "wugapodes@gmail.com"
 __status__ = "Development"
+
+log = logging.getLogger(__name__)
 
 
 class Entry:
@@ -34,19 +37,21 @@ class Entry:
         self.number, int
         """
         global live
+        log.debug("Creating Entry instance")
         self.text = line
+        log.debug(line)
         self._matches = matches
         self.status = None
         self.subsection = subsection
         self.bad = False
         self.badlink = None
         self.badreview = False
-        subsSectName = subsection  # subsection.name
 
         # Get title
         try:
             title = matches.group(1)
-        except:
+        except Exception:
+            log.warning("Unable to parse title")
             self.bad = True
             title = None
         self.title = title
@@ -55,7 +60,8 @@ class Entry:
         try:
             t = matches.group(4)
             time = wiki2datetime(t)
-        except:
+        except Exception:
+            log.warning("Unable to parse timestamp")
             self.bad = True
             time = None
         self.timestamp = time
@@ -63,13 +69,15 @@ class Entry:
         try:
             username = self.getUsername(matches.group(3))
         except Exception:
+            log.warning("Unable to parse username")
             self.bad = True
             username = None
         self.nominator = username
 
         try:
             review_num = matches.group(2)
-        except:
+        except Exception:
+            log.warning("Unable to parse review number")
             review_num = 1
         self.number = review_num
         self.r_timestamp = dt.utcnow()
@@ -78,7 +86,7 @@ class Entry:
             try:
                 log.debug("Making malformed nomination link")
                 self.badlink = self.link()
-            except:
+            except Exception:
                 log.warning("Unable to make malformed nomination link")
                 self.badlink = self.title
                 log.debug(self.text)
@@ -126,13 +134,16 @@ class Entry:
         return string
 
     def add_review(self, status, line):
+        log.info("Adding review")
         self.status = status
         matches = reviewRegex.search(line)
         try:
             t = matches.group(2)
             time = wiki2datetime(t)
             self.r_timestamp = time
-        except:
+        except Exception:
+            log.warning("Unable to get review timestamp")
+            log.debug(line)
             self.bad = True
             self.badreview = True
             self.r_timestamp = dt.utcnow()
