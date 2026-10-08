@@ -36,5 +36,10 @@ Thumbs.db
 .ipynb_checkpoints/
 
 # pywikibot
+*.lwp
 throttle.ctrl
 apicache
+passwords
+
+# internal
+beta_backlog_report.txt
