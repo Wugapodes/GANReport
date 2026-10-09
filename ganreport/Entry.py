@@ -60,8 +60,9 @@ class Entry:
         try:
             t = matches.group(4)
             time = wiki2datetime(t)
-        except Exception:
+        except Exception as e:
             log.warning("Unable to parse timestamp")
+            log.debug(e)
             self.bad = True
             time = None
         self.timestamp = time

@@ -16,6 +16,7 @@ setup(
     entry_points={
         "console_scripts": [
             "ganreport=ganreport.main:main",  # Command line entry
+            "fix_gaps=ganreport.main:fix_gaps",
         ],
     },
     classifiers=[

@@ -188,6 +188,32 @@ class NomPage:
         ] + [x.link() for x in oldest]
         return "\n".join(print_list)
 
+    def print_backlog_report_line(self, timestamp=dt.now()):
+        ts = wikiTimeStamp(timestamp)
+        noms = self.stats["noms"]
+        inac = self.stats["inac"]
+        ohld = self.stats["ohld"]
+        orev = self.stats["orev"]
+        scnd = self.stats["scnd"]
+        newline = (
+            ts
+            + " &ndash; "
+            + str(noms)
+            + " nominations outstanding; "
+            + str(inac)
+            + " not reviewed; "
+            + "[[Image:Symbol wait.svg|15px|On Hold]] x "
+            + str(ohld)
+            + "; "
+            + "[[Image:Searchtool.svg|15px|Under Review]] x "
+            + str(orev)
+            + "; [[Image:Symbol neutral vote.svg|15px|2nd Opinion "
+            + "Requested]] x "
+            + str(scnd)
+            + "<br />"
+        )
+        return newline
+
     def print_backlog_report(self, backlog_report_path):
         ts = wikiTimeStamp()
         noms = self.stats["noms"]

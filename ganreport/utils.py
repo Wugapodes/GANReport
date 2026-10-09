@@ -22,8 +22,16 @@ reviewRegex = re.compile(
     r"{{GAReview.*?}}\s*.*?\[\[User\:(.*?)(?:\||\]\]).*? (\d\d\:\d\d, \d+ .*? \d\d\d\d) \(UTC\)"
 )
 
+timestamp_pattern = re.compile(r"^(\d{2}:\d{2}, \d{1,2} [A-Za-z]+ \d{4} \(UTC\))")
+
 
 def wiki2datetime(wikistamp):
+    wikistamp = wikistamp.removesuffix(" (UTC)")
+    dt = datetime.datetime.strptime(wikistamp, "%H:%M, %d %B %Y")
+    return dt
+
+
+def old_wiki2datetime(wikistamp):
     time, date_ = wikistamp.split(", ")
     hour, minute = time.split(":")
     day, month, year = date_.split(" ")
@@ -97,20 +105,22 @@ def monthConvert(name):
             raise ValueError
 
 
-def wikiTimeStamp():
+def wikiTimeStamp(timestamp=None):
     """
     Returns the current time stamp in the style of wikipedia signatures.
     """
+    if not timestamp:
+        timestamp = datetime.datetime.utcnow()
     stamp = (
-        str(datetime.datetime.utcnow().hour).zfill(2)
+        str(timestamp.hour).zfill(2)
         + ":"
-        + str(datetime.datetime.utcnow().minute).zfill(2)
+        + str(timestamp.minute).zfill(2)
         + ", "
-        + str(datetime.datetime.utcnow().day)
+        + str(timestamp.day)
         + " "
-        + monthConvert(datetime.datetime.utcnow().month)
+        + monthConvert(timestamp.month)
         + " "
-        + str(datetime.datetime.utcnow().year)
+        + str(timestamp.year)
         + " (UTC)"
     )
     return stamp
