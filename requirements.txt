@@ -1,1 +1,3 @@
 pywikibot
+Django>=5.2,<6.0
+mysqlclient>=2.2
