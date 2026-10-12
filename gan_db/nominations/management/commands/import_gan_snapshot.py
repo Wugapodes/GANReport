@@ -1,11 +1,11 @@
 """python manage.py import_gan_snapshot OLDID"""
-from datetime import datetime, timezone
 
 import pywikibot
 from django.core.management.base import BaseCommand
 from nominations.importer import import_snapshot
 
 from ganreport.NomPage import NomPage
+from ganreport.utils import normalize_timestamp
 
 
 class Command(BaseCommand):
@@ -19,23 +19,7 @@ class Command(BaseCommand):
         site = pywikibot.Site("en", "wikipedia")
         page = pywikibot.Page(site, "Wikipedia:Good article nominations")
         revision = page.get_revision(oldid, content=True)
-        timestamp = revision.timestamp
-        if isinstance(timestamp, str):
-            timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-        # Convert to naive UTC, then construct a *built-in* datetime.
-        # Pywikibot Timestamp subclasses datetime and overrides formatting;
-        # calling replace() alone can preserve that subclass.
-        if timestamp.tzinfo is not None:
-            timestamp = timestamp.astimezone(timezone.utc)
-        timestamp = datetime(
-            timestamp.year,
-            timestamp.month,
-            timestamp.day,
-            timestamp.hour,
-            timestamp.minute,
-            timestamp.second,
-            timestamp.microsecond,
-        )
+        timestamp = normalize_timestamp(revision.timestamp)
         nompage = NomPage(revision.text)
         nompage.parse(organize=False, noms=False)
         snapshot = import_snapshot(

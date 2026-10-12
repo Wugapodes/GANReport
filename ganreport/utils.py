@@ -124,3 +124,19 @@ def wikiTimeStamp(timestamp=None):
         + " (UTC)"
     )
     return stamp
+
+
+def normalize_timestamp(timestamp):
+    """Convert a Pywikibot timestamp to a standard naive UTC datetime."""
+    if isinstance(timestamp, str):
+        timestamp = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+
+    return datetime.datetime(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour,
+        timestamp.minute,
+        timestamp.second,
+        timestamp.microsecond,
+    )

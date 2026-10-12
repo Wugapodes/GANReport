@@ -80,6 +80,12 @@ def standard_args():
         help="Path which contains the backlog_report.txt and beta_backlog_report.txt",
     )
 
+    parser.add_argument(
+        "--save-db",
+        action="store_true",
+        help="Save the parsed WP:GAN snapshot to the Django database",
+    )
+
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
 
@@ -101,12 +107,17 @@ def main():
 
     site = pywikibot.Site("en", "wikipedia")
     page = pywikibot.Page(site, "Wikipedia:Good article nominations")
-    nomPage = NomPage(page.text)
+    revision = page.latest_revision
+    nomPage = NomPage(revision.text)
     nomPage.parse()
     report = nomPage.write_report(write_mode, archive_path)
     oldLine = nomPage.oldLine
     oldTen = nomPage.oldestTen
     save_pages(site, report, oldLine, oldTen, write_mode)
+    if args.save_db:
+        from ganreport.db import save_snapshot
+
+        save_snapshot(nomPage, revision)
 
 
 def fix_gaps():
